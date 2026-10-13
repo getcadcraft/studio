@@ -1,0 +1,8 @@
+node_modules/
+/out/
+/work/
+/stage/
+.env
+.env.*
+*.log
+*.zip

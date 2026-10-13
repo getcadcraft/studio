@@ -1,0 +1,143 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- CadCraft Studio, the hub (docs/0.4-PART2.md track H). Template: pack/suite.mjs fills {{…}} and writes the suite's
+     index.html. Static words come from the language file through data-t (hub.js fills them); nothing here is English
+     that a person reads except the <noscript> line, which is filled at pack time too. -->
+<html lang="{{LOCALE}}" data-studio>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    (function () {
+      var d = document.documentElement, s = null;
+      d.classList.add('js');
+      try {
+        var q = new URLSearchParams(location.search).get('space');
+        if (q === 'paper' || q === 'model') { s = q; localStorage.setItem('cc-space', q); }
+        else { s = localStorage.getItem('cc-space'); }
+      } catch (e) {}
+      if (s !== 'paper' && s !== 'model') s = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'model' : 'paper';
+      d.setAttribute('data-space', s);
+    })();
+  </script>
+  <title>{{TITLE}}</title>
+  <meta name="generator" content="CadCraft Studio">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./assets/vendor/bootstrap-icons/{{ICONS}}/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="./assets/css/tokens.css">
+  <link rel="stylesheet" href="./hub/hub.css">
+  <script type="application/json" id="cc-lang">{{LANG}}</script>
+  <script type="application/json" id="studio-langs">{{LANGS}}</script>
+  <script type="application/json" id="studio-suite">{{SUITE}}</script>
+  <script type="module" src="./hub/hub.js"></script>
+</head>
+<body class="studio">
+<a class="studio-skip" href="#main" data-t="a11y.skip"></a>
+<header class="studio-bar">
+  <span class="studio-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 32 32" focusable="false"><path d="M16 1.5v8M16 22.5v8M1.5 16h8M22.5 16h8" stroke="currentColor" stroke-width="2" stroke-linecap="square" fill="none"/><rect x="10" y="10" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6"/></svg></span>
+  <h1 class="studio-name" data-t="studio.name"></h1>
+  <span class="studio-bar-tag" data-t="{{EDITION_KEY}}"></span>
+  <span class="studio-bar-tag studio-bar-ver">{{VERSION}}</span>
+  <span class="studio-bar-gap"></span>
+  <button type="button" class="studio-bar-btn" data-open-file data-t-title="open.title"><i class="bi bi-folder2-open" aria-hidden="true"></i><span data-t="open.button"></span></button>
+  <button type="button" class="studio-bar-btn" data-open-help data-t-title="help.title"><i class="bi bi-question-circle" aria-hidden="true"></i><span data-t="help.button"></span></button>
+  <button type="button" class="studio-bar-btn" data-open-settings data-t-title="settings.title"><i class="bi bi-gear" aria-hidden="true"></i><span data-t="settings.button"></span></button>
+</header>
+<noscript><p class="studio-noscript">{{NOSCRIPT}}</p></noscript>
+<p class="studio-status" data-studio-status role="status" aria-live="polite" hidden></p>
+<ul class="studio-pending" data-pending hidden></ul>
+<main id="main" class="studio-main">
+  <div class="studio-col-main">
+    <section class="studio-sec" aria-labelledby="studio-apps-h">
+      <h2 id="studio-apps-h" class="studio-h" data-t="apps.title"></h2>
+      <ul class="studio-tiles" data-tiles></ul>
+      <div data-upcoming></div>
+    </section>
+    <section class="studio-sec" aria-labelledby="studio-recent-h" data-recent>
+      <h2 id="studio-recent-h" class="studio-h" data-t="recent.title"></h2>
+      <div class="studio-chips" data-recent-filter role="group" data-t-label="recent.filter" hidden></div>
+      <p class="studio-empty" data-recent-empty data-t="recent.empty" hidden></p>
+      <ul class="studio-rows" data-recent-list></ul>
+      <div class="studio-cloudfiles" data-cloud-files hidden>
+        <h3 class="studio-h3" data-t="cloud.title"></h3>
+        <p class="studio-empty" data-cloud-empty data-t="cloud.empty" hidden></p>
+        <ul class="studio-rows"></ul>
+      </div>
+    </section>
+  </div>
+  <aside class="studio-col-side">
+    <section class="studio-card studio-drop" data-drop tabindex="0" aria-labelledby="studio-drop-h">
+      <i class="bi bi-file-earmark-arrow-down studio-drop-icon" aria-hidden="true"></i>
+      <h2 id="studio-drop-h" class="studio-h" data-t="drop.title"></h2>
+      <p data-t="drop.body"></p>
+      <button type="button" class="studio-btn studio-btn-plot" data-open-file data-t="open.button"></button>
+    </section>
+    <section class="studio-card" data-windows hidden aria-labelledby="studio-win-h">
+      <h2 id="studio-win-h" class="studio-h" data-t="windows.title"></h2>
+      <ul class="studio-wins"></ul>
+    </section>
+    <section class="studio-card" data-assist hidden aria-labelledby="studio-assist-h">
+      <h2 id="studio-assist-h" class="studio-h" data-t="assist.title"></h2>
+      <div data-assist-body></div>
+    </section>
+    <section class="studio-card" data-account aria-labelledby="studio-acct-h" hidden>
+      <h2 id="studio-acct-h" class="studio-h" data-t="account.title"></h2>
+      <div data-account-body></div>
+    </section>
+    <section class="studio-card" data-offline hidden aria-labelledby="studio-off-h">
+      <h2 id="studio-off-h" class="studio-h" data-t="offline.title"></h2>
+      <p data-offline-state data-t="offline.body"></p>
+      <progress class="studio-progress" data-offline-progress max="1" value="0" hidden></progress>
+      <div class="studio-btnrow">
+        <button type="button" class="studio-btn" data-offline-save data-t="offline.save"></button>
+        <button type="button" class="studio-btn studio-btn-line" data-offline-remove data-t="offline.remove" hidden></button>
+      </div>
+    </section>
+    <section class="studio-card" aria-labelledby="studio-news-h">
+      <h2 id="studio-news-h" class="studio-h" data-t="news.title"></h2>
+      <ul class="studio-newslist" data-news></ul>
+      <h3 class="studio-h3" data-t="updates.title"></h3>
+      <div data-updates></div>
+    </section>
+  </aside>
+</main>
+<footer class="studio-foot">
+  <p data-t="foot.line"></p>
+</footer>
+
+<div class="studio-dropveil" aria-hidden="true"><span data-t="drop.veil"></span></div>
+
+<dialog class="studio-dialog" data-ask aria-labelledby="studio-ask-h">
+  <h2 id="studio-ask-h" class="studio-h" data-ask-title></h2>
+  <div class="studio-ask-apps" data-ask-apps></div>
+  <label class="studio-check"><input type="checkbox" data-ask-always> <span data-ask-always-label></span></label>
+  <div class="studio-btnrow"><button type="button" class="studio-btn studio-btn-line" data-ask-cancel data-t="dialog.cancel"></button></div>
+</dialog>
+
+<dialog class="studio-dialog" data-settings aria-labelledby="studio-set-h">
+  <div class="studio-dialog-head"><h2 id="studio-set-h" class="studio-h" data-t="settings.title"></h2><button type="button" class="studio-x" data-close data-t-label="dialog.close"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+  <fieldset class="studio-fieldset">
+    <legend data-t="settings.theme"></legend>
+    <label class="studio-check"><input type="radio" name="space" value="paper"> <span data-t="settings.theme.paper"></span></label>
+    <label class="studio-check"><input type="radio" name="space" value="model"> <span data-t="settings.theme.model"></span></label>
+    <label class="studio-check"><input type="radio" name="space" value="system"> <span data-t="settings.theme.system"></span></label>
+    <p class="studio-hint" data-t="settings.theme.hint"></p>
+  </fieldset>
+  <fieldset class="studio-fieldset">
+    <legend data-t="settings.lang"></legend>
+    <select class="select-cc studio-select" data-set-lang data-t-label="settings.lang"></select>
+    <p class="studio-hint" data-t="settings.lang.hint"></p>
+  </fieldset>
+  <fieldset class="studio-fieldset">
+    <legend data-t="settings.types"></legend>
+    <div data-set-types></div>
+    <button type="button" class="studio-btn studio-btn-line studio-btn-sm" data-set-forget data-t="settings.types.forget"></button>
+  </fieldset>
+</dialog>
+
+<dialog class="studio-dialog studio-dialog-wide" data-help aria-labelledby="studio-help-h">
+  <div class="studio-dialog-head"><h2 id="studio-help-h" class="studio-h" data-t="help.title"></h2><button type="button" class="studio-x" data-close data-t-label="dialog.close"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+  <div data-help-body></div>
+</dialog>
+</body>
+</html>
