@@ -141,6 +141,19 @@ function localLibs(slug) {
   return out;
 }
 
+// The hub's languages (also the app windows' Studio words, suitePage below).
+const langs = {};
+for (const f of fs.readdirSync(path.join(STUDIO, 'hub/lang')).filter((f) => /^[a-z]{2}(-[A-Z]{2})?\.json$/.test(f))) {
+  const j = JSON.parse(read(path.join(STUDIO, 'hub/lang', f)));
+  langs[j['@locale']] = { name: j['@name'], strings: Object.fromEntries(Object.entries(j).filter(([k]) => !k.startsWith('@'))) };
+}
+// The lineup's descriptions (each app's role, tagline, short: catalog.<slug>.<field>) in every language the hub speaks,
+// from the site's assets/lang/catalog/<locale>.json (Catalog reads the English there; session lang owns these files).
+for (const [loc, l] of Object.entries(langs)) {
+  const f = path.join(PUB, 'assets/lang/catalog', loc + '.json');
+  if (!exists(f)) continue;
+  for (const [k, v] of Object.entries(JSON.parse(read(f)))) if (k.startsWith('catalog.')) l.strings[k] = v;
+}
 const suiteApps = [];
 const siblingsFor = (slug) => Object.fromEntries(INCLUDED.filter((s) => s !== slug).map((s) => [s, { accepts: manifestOf(s).accepts || [] }]));
 const hubWords = JSON.parse(read(path.join(STUDIO, 'hub/lang/en.json')));
@@ -219,25 +232,26 @@ function suitePage(slug, html, isShared) {
     offline = d.urls;
     return a + jsonEmbed(d) + b;
   });
-  const words = { 'window.hub': fillWords(hubWords['window.hub']), 'window.hub.title': fillWords(hubWords['window.hub.title']) };
+  // Every window.* word in every hub language (window.js picks the page's), {{…}} fills done here.
+  const words = Object.fromEntries(Object.entries(langs).map(([loc, l]) => [loc, Object.fromEntries(Object.entries(l.strings)
+    .filter(([k]) => k.startsWith('window.')).map(([k, v]) => [k, k.startsWith('window.live.') ? v : typeof v === 'string' ? fillWords(v) : Object.fromEntries(Object.entries(v).map(([f, x]) => [f, fillWords(x)]))]))]));
+  // (window.live.* keep their {fills}: {name} there is a person, filled in the window.)
   out = out.replace('</head>', `  <script type="application/json" id="studio-window-lang">${jsonEmbed(words)}</script>\n  <script type="module" src="../../hub/window.js"></script>\n</head>`);
   return { html: out, moved, offline };
 }
 
 // ------------------------------------------------------------------ the hub
 
-const HUB_FILES = ['hub.js', 'hub.css', 'route.js', 'channel.js', 'handoff.js', 'cloud.js', 'window.js'];
+const HUB_FILES = ['hub.js', 'hub.css', 'route.js', 'channel.js', 'handoff.js', 'cloud.js', 'news.js', 'avatar.js', 'window.js'];
 for (const f of HUB_FILES) copy(path.join(STUDIO, 'hub', f), path.join(DEST, 'hub', f));
+// Studio Live's window and hub modules (0.5 LV.6 / LV.7 / LV.23).
+for (const f of fs.readdirSync(path.join(STUDIO, 'hub/live')).filter((f) => /\.(js|css)$/.test(f))) copy(path.join(STUDIO, 'hub/live', f), path.join(DEST, 'hub/live', f));
 copy(path.join(PUB, 'assets/js/host.js'), path.join(DEST, 'hub/host.js'));
 if (!exists(path.join(DEST, 'assets/js/i18n.js'))) copy(path.join(PUB, 'assets/js/i18n.js'), path.join(DEST, 'assets/js/i18n.js'));
-const langs = {};
-for (const f of fs.readdirSync(path.join(STUDIO, 'hub/lang')).filter((f) => /^[a-z]{2}(-[A-Z]{2})?\.json$/.test(f))) {
-  const j = JSON.parse(read(path.join(STUDIO, 'hub/lang', f)));
-  langs[j['@locale']] = { name: j['@name'], strings: Object.fromEntries(Object.entries(j).filter(([k]) => !k.startsWith('@'))) };
-}
 const icons = (shared.size && [...shared.keys()].map((k) => (k.match(/^assets\/vendor\/bootstrap-icons\/([^/]+)\//) || [])[1]).find(Boolean)) || null;
 if (!icons) die('no Bootstrap Icons in the editions');
 const hubFiles = ['index.html', 'favicon.svg', 'assets/css/tokens.css', 'assets/js/i18n.js', ...HUB_FILES.map((f) => 'hub/' + f), 'hub/host.js',
+  ...fs.readdirSync(path.join(DEST, 'hub/live')).map((f) => 'hub/live/' + f),
   ...walk(path.join(DEST, 'assets/vendor/bootstrap-icons', icons)).filter((r) => /\.(css|woff2?)$/.test(r)).map((r) => `assets/vendor/bootstrap-icons/${icons}/${r}`),
   ...walk(path.join(DEST, 'assets/vendor')).filter((r) => r.startsWith('archivo/') && r.endsWith('.woff2')).map((r) => 'assets/vendor/' + r)];
 const suiteJson = {
@@ -251,7 +265,7 @@ const suiteJson = {
 let hub = read(path.join(STUDIO, 'hub/index.html'));
 const fill = {
   LOCALE: 'en', TITLE: hubWords['studio.name'], ICONS: icons, VERSION: BUILD === 'dev' ? hubWords['tile.dev'] : BUILD,
-  EDITION_KEY: 'edition.browser', NOSCRIPT: hubWords.noscript,
+  VERSION_KEY: BUILD === 'dev' ? 'tile.dev' : '', EDITION_KEY: 'edition.browser', NOSCRIPT: hubWords.noscript,
   LANG: jsonEmbed({ locale: 'en', chain: ['en'], strings: langs.en.strings }),
   LANGS: jsonEmbed(Object.fromEntries(Object.entries(langs).map(([k, l]) => [k, l.strings]))),
   SUITE: jsonEmbed(suiteJson),

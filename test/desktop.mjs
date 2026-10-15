@@ -43,7 +43,7 @@ if (process.env.DBUS_SESSION_BUS_ADDRESS && fs.existsSync('/usr/bin/gnome-keyrin
 
 // Stage: the suite as the shell's app/ folder, shell.json beside it (suite: true).
 const stage = path.join(tmp, 'stage');
-fs.cpSync(SUITE('dev'), path.join(stage, 'app'), { recursive: true });
+fs.cpSync(process.argv.includes('--suite') ? path.resolve(process.argv[process.argv.indexOf('--suite') + 1]) : SUITE('dev'), path.join(stage, 'app'), { recursive: true });
 for (const f of ['sw.js', '.htaccess', 'web.config']) fs.rmSync(path.join(stage, 'app', f), { force: true });
 fs.writeFileSync(path.join(stage, 'shell.json'), JSON.stringify({ app: 'studio', name: 'CadCraft Studio', version: 'dev', suite: true, headers: {} }));
 

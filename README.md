@@ -2,8 +2,9 @@
 
 **The eight CadCraft apps together in one install**, with a home screen (the hub) that opens them, sends each file to
 the app that reads it, and keeps their windows in touch. Studio is not another app: every app in it is the same browser
-edition that ships on its own, unchanged. It comes two ways: a browser edition (one folder of plain files for any web
-server) and a desktop install (the same folder inside the CadCraft desktop shell, in suite mode).
+edition that ships on its own, unchanged. It is a desktop install: the suite folder this repo packs, inside the CadCraft desktop shell in suite mode. The suite
+folder (and its zip) is how the installers are built; it is not published as a browser edition (owner, 2026-10-14).
+Each app on its own still comes as a browser edition.
 
 Website: https://getcadcraft.com. Every CadCraft repo: https://github.com/getcadcraft
 

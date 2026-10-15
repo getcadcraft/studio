@@ -37,8 +37,9 @@
   <span class="studio-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 32 32" focusable="false"><path d="M16 1.5v8M16 22.5v8M1.5 16h8M22.5 16h8" stroke="currentColor" stroke-width="2" stroke-linecap="square" fill="none"/><rect x="10" y="10" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6"/></svg></span>
   <h1 class="studio-name" data-t="studio.name"></h1>
   <span class="studio-bar-tag" data-t="{{EDITION_KEY}}"></span>
-  <span class="studio-bar-tag studio-bar-ver">{{VERSION}}</span>
+  <span class="studio-bar-tag studio-bar-ver" data-t="{{VERSION_KEY}}">{{VERSION}}</span>
   <span class="studio-bar-gap"></span>
+  <span class="studio-bar-avatar" data-bar-avatar hidden></span>
   <button type="button" class="studio-bar-btn" data-open-file data-t-title="open.title"><i class="bi bi-folder2-open" aria-hidden="true"></i><span data-t="open.button"></span></button>
   <button type="button" class="studio-bar-btn" data-open-help data-t-title="help.title"><i class="bi bi-question-circle" aria-hidden="true"></i><span data-t="help.button"></span></button>
   <button type="button" class="studio-bar-btn" data-open-settings data-t-title="settings.title"><i class="bi bi-gear" aria-hidden="true"></i><span data-t="settings.button"></span></button>
@@ -72,6 +73,27 @@
       <p data-t="drop.body"></p>
       <button type="button" class="studio-btn studio-btn-plot" data-open-file data-t="open.button"></button>
     </section>
+    <section class="studio-card" data-live-join hidden aria-labelledby="studio-join-h">
+      <h2 id="studio-join-h" class="studio-h" data-t="live.join.title"></h2>
+      <form class="studio-join" novalidate>
+        <label class="studio-field"><span data-live-join-label></span>
+          <input class="studio-input" type="text" data-live-join-input autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="300" aria-describedby="studio-join-kind"></label>
+        <p class="studio-join-kind" id="studio-join-kind" data-live-join-kind hidden></p>
+        <div class="studio-join-as" data-live-join-as hidden>
+          <p data-live-join-as-text></p>
+          <button type="button" class="studio-btn studio-btn-line studio-btn-sm" data-live-join-other data-t="live.join.other"></button>
+        </div>
+        <div data-live-join-guest>
+          <label class="studio-field"><span data-t="live.join.yourname"></span>
+            <input class="studio-input" type="text" data-live-join-name autocomplete="name" maxlength="60" aria-describedby="studio-join-namehint"></label>
+          <p class="studio-hint" id="studio-join-namehint" data-live-join-namehint></p>
+          <button type="button" class="studio-btn studio-btn-line studio-btn-sm" data-live-join-mine data-t="live.join.mine" hidden></button>
+        </div>
+        <div class="studio-btnrow"><button type="submit" class="studio-btn studio-btn-plot" data-live-join-go data-t="live.join.go"></button></div>
+      </form>
+      <p class="studio-hint" data-live-join-hint></p>
+      <p class="studio-join-msg" data-live-join-msg role="status" aria-live="polite" hidden></p>
+    </section>
     <section class="studio-card" data-windows hidden aria-labelledby="studio-win-h">
       <h2 id="studio-win-h" class="studio-h" data-t="windows.title"></h2>
       <ul class="studio-wins"></ul>
@@ -93,8 +115,10 @@
         <button type="button" class="studio-btn studio-btn-line" data-offline-remove data-t="offline.remove" hidden></button>
       </div>
     </section>
-    <section class="studio-card" aria-labelledby="studio-news-h">
-      <h2 id="studio-news-h" class="studio-h" data-t="news.title"></h2>
+    <section class="studio-card" data-news-card aria-labelledby="studio-news-h">
+      <div class="studio-card-head"><h2 id="studio-news-h" class="studio-h" data-t="news.title"></h2>
+        <button type="button" class="studio-x studio-card-x" data-news-dismiss data-t-label="news.dismiss" data-t-title="news.dismiss"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+      <div data-site-news hidden></div>
       <ul class="studio-newslist" data-news></ul>
       <h3 class="studio-h3" data-t="updates.title"></h3>
       <div data-updates></div>
@@ -114,6 +138,13 @@
   <div class="studio-btnrow"><button type="button" class="studio-btn studio-btn-line" data-ask-cancel data-t="dialog.cancel"></button></div>
 </dialog>
 
+<dialog class="studio-dialog" data-confirm aria-labelledby="studio-confirm-h">
+  <h2 id="studio-confirm-h" class="studio-h" data-confirm-title></h2>
+  <p data-confirm-body></p>
+  <div class="studio-btnrow"><button type="button" class="studio-btn studio-btn-line" data-confirm-cancel data-t="dialog.cancel"></button>
+    <button type="button" class="studio-btn studio-btn-plot" data-confirm-go></button></div>
+</dialog>
+
 <dialog class="studio-dialog" data-settings aria-labelledby="studio-set-h">
   <div class="studio-dialog-head"><h2 id="studio-set-h" class="studio-h" data-t="settings.title"></h2><button type="button" class="studio-x" data-close data-t-label="dialog.close"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
   <fieldset class="studio-fieldset">
@@ -129,9 +160,20 @@
     <p class="studio-hint" data-t="settings.lang.hint"></p>
   </fieldset>
   <fieldset class="studio-fieldset">
+    <legend data-t="settings.news"></legend>
+    <label class="studio-check"><input type="checkbox" data-set-news> <span data-t="settings.news.label"></span></label>
+    <p class="studio-hint" data-t="settings.news.hint"></p>
+    <button type="button" class="studio-btn studio-btn-line studio-btn-sm" data-news-show data-t="settings.news.show" hidden></button>
+  </fieldset>
+  <fieldset class="studio-fieldset">
     <legend data-t="settings.types"></legend>
     <div data-set-types></div>
     <button type="button" class="studio-btn studio-btn-line studio-btn-sm" data-set-forget data-t="settings.types.forget"></button>
+  </fieldset>
+  <fieldset class="studio-fieldset" data-set-input-set>
+    <legend data-t="settings.input"></legend>
+    <select class="select-cc studio-select" data-set-input data-t-label="settings.input"></select>
+    <p class="studio-hint" data-t="settings.input.hint"></p>
   </fieldset>
 </dialog>
 

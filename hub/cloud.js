@@ -84,8 +84,20 @@ export function cloudClient(cloud) {
   };
 }
 
-/** The account card's view of a sync/status answer: one workspace (the chosen one, else the first with cloud open). */
-export function cardModel(status, { workspace = null } = {}) {
+const SLUG = /^[a-z0-9-]{1,80}$/;
+/** A team's page slug (/teams/<slug>): sync/status's own, else /api/v1/me's organizations[] (0.5 SI.6), by uuid. */
+function slugOf(w, me) {
+  if (typeof w.slug === 'string' && SLUG.test(w.slug)) return w.slug;
+  const orgs = me && Array.isArray(me.organizations) ? me.organizations : [];
+  const o = orgs.find((x) => x && x.uuid === w.uuid);
+  return o && typeof o.slug === 'string' && SLUG.test(o.slug) ? o.slug : null;
+}
+
+/**
+ * The account card's view of a sync/status answer: one workspace (the chosen one, else the first with cloud open).
+ * `me` = /api/v1/me's data, for what sync/status doesn't carry (team slugs).
+ */
+export function cardModel(status, { workspace = null, me = null } = {}) {
   if (!status || !status.user) return null;
   const ws = Array.isArray(status.workspaces) ? status.workspaces : [];
   const pick = ws.find((w) => w.uuid === workspace) || ws.find((w) => w.cloud_open) || ws[0] || null;
@@ -93,7 +105,7 @@ export function cardModel(status, { workspace = null } = {}) {
     user: { name: String(status.user.name || ''), email: String(status.user.email || ''), verified: !!status.user.email_verified },
     workspaces: ws.map((w) => ({ uuid: w.uuid, name: String(w.name || ''), kind: w.kind, role: w.role, apps: Array.isArray(w.apps) ? w.apps : [], open: !!w.cloud_open })),
     workspace: pick ? {
-      uuid: pick.uuid, name: String(pick.name || ''), kind: pick.kind, apps: Array.isArray(pick.apps) ? pick.apps : [], open: !!pick.cloud_open,
+      uuid: pick.uuid, name: String(pick.name || ''), kind: pick.kind, slug: slugOf(pick, me), apps: Array.isArray(pick.apps) ? pick.apps : [], open: !!pick.cloud_open,
       used: pick.storage ? pick.storage.used_label || null : null, quota: pick.storage ? pick.storage.quota_label || null : null,
       fraction: pick.storage && pick.storage.quota_bytes > 0 ? Math.min(1, pick.storage.used_bytes / pick.storage.quota_bytes) : null,
     } : null,

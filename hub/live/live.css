@@ -1,0 +1,90 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* live.css — Studio Live's panel in an app window (window-live.js). Site tokens only (paper / model follow); rem sizes;
+   px only for hairlines. No shadows, no gradients: hierarchy by line weight, as the rest of the apps. */
+
+.app-bar-live.is-live .bi { color: var(--layer-green); }
+.app-bar-live .sl-count {
+  min-width: 1.2rem; padding: 0 .3rem; border-radius: 1rem; font-size: .75rem; line-height: 1.2rem; text-align: center;
+  background: var(--layer-red); color: #fff; font-variant-numeric: tabular-nums;
+}
+.sl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.sl-panel {
+  position: fixed; z-index: 1060; top: 3rem; right: .75rem; width: 24rem; max-width: calc(100vw - 1.5rem);
+  max-height: calc(100vh - 4rem); overflow: auto; padding: .9rem 1rem 1rem;
+  background: var(--sheet-2); color: var(--ink); border: var(--pen-3) solid var(--ink); border-radius: var(--radius);
+  font-size: var(--fs-sm);
+}
+.sl-panel[hidden] { display: none; }
+.sl-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; }
+.sl-h { margin: 0; font-size: var(--fs-md); font-weight: 700; }
+.sl-h3 { margin: 0 0 .45rem; font-size: var(--fs-sm); font-weight: 700; }
+.sl-x { border: 0; background: none; color: var(--ink); padding: .2rem .35rem; border-radius: var(--radius); }
+.sl-x:hover { background: var(--sheet); }
+.sl-sec { padding: .7rem 0; border-top: var(--pen-1) solid var(--grid); }
+.sl-row { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+.sl-foot { margin-top: .8rem; }
+.sl-muted { color: var(--ink-2); margin: .15rem 0; }
+.sl-hint { color: var(--ink-2); margin: .4rem 0 0; font-size: .85rem; }
+.sl-note { margin: .4rem 0; padding: .35rem .5rem; border-left: .25rem solid var(--action); background: var(--sheet); }
+.sl-note.is-error { border-left-color: var(--layer-red); }
+.sl-note.is-warn { border-left-color: var(--layer-ochre); }
+.sl-end { margin: .3rem 0 .8rem; padding: .5rem .6rem; border: var(--pen-1) solid var(--line); background: var(--sheet); }
+.sl-state { display: flex; align-items: center; gap: .45rem; margin: 0 0 .3rem; font-weight: 600; }
+.sl-dot { width: .6rem; height: .6rem; border-radius: 50%; background: var(--layer-ochre); flex: 0 0 auto; }
+.sl-state[data-live-state="live"] .sl-dot { background: var(--layer-green); }
+
+.sl-btn {
+  display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .7rem; font: inherit; cursor: pointer;
+  color: var(--on-action); background: var(--action); border: var(--pen-2) solid var(--action); border-radius: var(--radius);
+}
+.sl-btn:disabled { opacity: .55; cursor: not-allowed; }
+.sl-btn-line { color: var(--ink); background: transparent; border-color: var(--ink); }
+.sl-btn-plot { font-weight: 700; }
+.sl-btn-danger { color: #fff; background: var(--layer-red); border-color: var(--layer-red); }
+.sl-btn-sm { padding: .1rem .45rem; font-size: .8rem; }
+.sl-btn:focus-visible, .sl-x:focus-visible, .sl-input:focus-visible, .sl-select:focus-visible { outline: var(--pen-3) solid var(--action); outline-offset: 2px; }
+
+.sl-field { display: grid; gap: .2rem; margin: .5rem 0; }
+.sl-check { display: flex; align-items: center; gap: .35rem; margin: .4rem 0 0; }
+.sl-input, .sl-select {
+  width: 100%; padding: .3rem .45rem; font: inherit; color: var(--ink); background: var(--sheet);
+  border: var(--pen-1) solid var(--line); border-radius: var(--radius);
+}
+.sl-select-sm { width: auto; padding: .1rem .3rem; font-size: .8rem; }
+.sl-linkurl { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .8rem; }
+
+.sl-codebox { display: flex; gap: .8rem; align-items: flex-start; justify-content: space-between; }
+.sl-code {
+  margin: 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 1.9rem; font-weight: 700;
+  letter-spacing: .08em; font-variant-numeric: tabular-nums;
+}
+.sl-addr { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .8rem; }
+.sl-qr { width: 8.5rem; height: 8.5rem; flex: 0 0 auto; border: var(--pen-1) solid var(--grid); }
+
+.sl-card { padding: .55rem .6rem; margin-bottom: .45rem; border: var(--pen-3) solid var(--action); background: var(--sheet); }
+.sl-card-who { display: flex; gap: .55rem; align-items: center; }
+.sl-card-name { margin: 0; font-weight: 700; }
+.sl-avatar {
+  display: inline-grid; place-items: center; flex: 0 0 auto; width: 1.9rem; height: 1.9rem; border-radius: 50%;
+  font-size: .75rem; font-weight: 700; color: #fff; background: var(--layer, var(--line));
+}
+.sl-avatar.layer-red { --layer: var(--layer-red); } .sl-avatar.layer-blue { --layer: var(--layer-blue); }
+.sl-avatar.layer-orange { --layer: var(--layer-orange); } .sl-avatar.layer-magenta { --layer: var(--layer-magenta); }
+.sl-avatar.layer-ochre { --layer: var(--layer-ochre); } .sl-avatar.layer-green { --layer: var(--layer-green); }
+.sl-avatar.layer-violet { --layer: var(--layer-violet); } .sl-avatar.layer-cyan { --layer: var(--layer-cyan); }
+img.sl-avatar { object-fit: cover; }
+
+.sl-people { list-style: none; margin: 0; padding: 0; }
+.sl-person { display: grid; grid-template-columns: auto 1fr auto; gap: .2rem .5rem; align-items: center; padding: .3rem 0; border-bottom: var(--pen-1) solid var(--grid); }
+.sl-person.is-gone { opacity: .55; }
+.sl-person-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-person-via { grid-column: 2; font-size: .8rem; }
+.sl-person-actions { grid-column: 3; grid-row: 1 / span 2; display: flex; gap: .3rem; align-items: center; }
+.sl-person-role { grid-column: 3; grid-row: 1 / span 2; }
+.sl-ask { margin-top: .8rem; padding: .6rem; border: var(--pen-3) solid var(--layer-red); background: var(--sheet); }
+.sl-ask p { margin: 0; }
+.sl-assistant { padding-left: 1.2rem; }
+.sl-avatar-bot { background: var(--sheet); color: var(--ink); border: var(--pen-1) solid var(--line); }
+.sl-tick { color: var(--layer-blue); }
+.sl-verified { margin: .1rem 0; color: var(--layer-green); font-weight: 600; font-size: .85rem; }

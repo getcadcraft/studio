@@ -16,19 +16,24 @@
  * per document; browser → a new tab. Handing it a file (H.5/H.6): desktop paths go with the window; browser files go
  * through the same IndexedDB handoff the apps use between themselves (handoff.js), for apps whose build accepts it.
  */
-import { t, init, locale } from '../assets/js/i18n.js';
+import { t, has, init, locale } from '../assets/js/i18n.js';
 import { route, cleanAlways, knownExtensions, extOf } from './route.js';
 import { openChannel, windowId } from './channel.js';
 import { putHandoff, newHandoffId } from './handoff.js';
 import { cloudClient, cardModel, SyncQueue, SIGN_IN_AGAIN, CloudError } from './cloud.js';
 import { createHost, recentStore, createControlRelay } from './host.js';
+import { wireJoin } from './live/hub-join.js';
+import { newsFeed, newsDismissal, newer } from './news.js';
+import { avatarStore } from './avatar.js';
 
 const doc = document;
 const suite = JSON.parse(doc.getElementById('studio-suite').textContent);
 const desk = window.cadcraftDesktop && Number(window.cadcraftDesktop.version) >= 1 ? window.cadcraftDesktop : null;
+// Studio on a tablet (TB.4): one window, apps as views; set from the shell's info() at start.
+let tablet = false;
 const APPS = suite.apps.map((a) => a.slug);
 const appBy = Object.fromEntries(suite.apps.map((a) => [a.slug, a]));
-const LS = { always: 'cadcraft.studio.always', lang: 'cadcraft.studio.lang', filter: 'cadcraft.studio.filter', ws: 'cadcraft.studio.workspace', tab: 'cadcraft.studio.tab' };
+const LS = { news: 'cadcraft.studio.news.on', always: 'cadcraft.studio.always', lang: 'cadcraft.studio.lang', filter: 'cadcraft.studio.filter', ws: 'cadcraft.studio.workspace', tab: 'cadcraft.studio.tab' };
 const ls = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* private mode */ } },
@@ -86,6 +91,8 @@ function say(msg, kind = 'info') {
 const always = () => cleanAlways(ls.get(LS.always), APPS);
 const appName = (slug) => (appBy[slug] ? appBy[slug].name : slug);
 const appUrl = (slug) => 'apps/' + slug + '/index.html';
+/** An app's role / tagline / short in the hub's language (catalog.<slug>.<field>, packed from the site), else the English. */
+const word = (slug, f, en) => (has('catalog.' + slug + '.' + f) ? t('catalog.' + slug + '.' + f) : en);
 
 // ------------------------------------------------------------------ the channel (H.11) and windows (H.3)
 
@@ -111,6 +118,12 @@ channel.on('bye', (d, e) => { if (openWindows.delete(e.from)) renderWindows(); }
 async function openApp(slug, { paths = [], search = '' } = {}) {
   if (!appBy[slug]) return null;
   if (desk && desk.windows && typeof desk.windows.open === 'function') {
+    // Tablet: Android's Back only hides a view, its work kept. Tapping the app again goes back to that view (its unsaved
+    // drawing) rather than starting a second, empty one.
+    if (tablet && !paths.length && !search && typeof desk.windows.list === 'function') {
+      const open = (await desk.windows.list().catch(() => [])).filter((w) => w.app === slug);
+      if (open.length) { await desk.windows.focus(open[open.length - 1].id); return { id: open[open.length - 1].id }; }
+    }
     const w = await desk.windows.open({ app: slug, paths, search });
     setTimeout(refreshWindows, 400);
     return w;
@@ -154,15 +167,17 @@ function askApp(name, r) {
   const dlg = $('[data-ask]');
   const list = dlg.querySelector('[data-ask-apps]');
   const remember = dlg.querySelector('[data-ask-always]');
-  dlg.querySelector('[data-ask-title]').textContent = t('ask.title', { file: name });
-  dlg.querySelector('[data-ask-always-label]').textContent = t('ask.always', { ext: '.' + r.ext });
+  // r.noRemember: a question that isn't about a file type (which app a live session is in); `name` is then the question.
+  dlg.querySelector('[data-ask-title]').textContent = r.noRemember ? name : t('ask.title', { file: name });
+  dlg.querySelector('[data-ask-always-label]').textContent = r.noRemember ? '' : t('ask.always', { ext: '.' + r.ext });
+  remember.closest('label').hidden = !!r.noRemember;
   remember.checked = false;
   list.replaceChildren(...r.apps.map((slug) => el('button', { type: 'button', class: 'studio-ask-app layer-' + appBy[slug].layer, value: slug },
-    el('span', { class: 'studio-swatch', 'aria-hidden': 'true' }), el('strong', {}, appBy[slug].name), el('span', { class: 'studio-ask-role' }, appBy[slug].role))));
+    el('span', { class: 'studio-swatch', 'aria-hidden': 'true' }), el('strong', {}, appBy[slug].name), el('span', { class: 'studio-ask-role' }, word(slug, 'role', appBy[slug].role)))));
   return new Promise((resolve) => {
     const done = (v) => { dlg.close(); list.replaceChildren(); resolve(v); };
     list.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
-      if (remember.checked) { const a = always(); a[r.ext] = b.value; ls.set(LS.always, JSON.stringify(a)); renderSettingsTypes(); }
+      if (remember.checked && !r.noRemember) { const a = always(); a[r.ext] = b.value; ls.set(LS.always, JSON.stringify(a)); renderSettingsTypes(); }
       done(b.value);
     }, { once: true }));
     dlg.addEventListener('cancel', () => done(null), { once: true });
@@ -242,6 +257,12 @@ function wireLaunch() {
   const take = (paths) => routeMany((paths || []).map((p) => ({ name: String(p).split(/[\\/]/).pop(), path: p })));
   if (typeof desk.onOpenFiles === 'function') desk.onOpenFiles(take);
   if (typeof desk.launchFiles === 'function') desk.launchFiles().then(take).catch(() => {});
+  // A per-app shortcut ("CadCraft", "BimCraft", … from the Studio installer, `--app=<slug>`): open that app (SD.6).
+  const w = desk.windows;
+  if (w && typeof w.launchApps === 'function') {
+    w.onLaunchApp((slug) => { openApp(slug).catch(() => {}); });
+    w.launchApps().then((slugs) => (slugs || []).forEach((slug) => openApp(slug).catch(() => {}))).catch(() => {});
+  }
 }
 
 // ------------------------------------------------------------------ tiles (H.1)
@@ -253,15 +274,15 @@ function renderTiles() {
       el('span', { class: 'studio-swatch', 'aria-hidden': 'true' }),
       el('h3', { class: 'studio-tile-name' }, a.name),
       el('span', { class: 'studio-tile-ver', title: t('tile.version.title') }, a.release === 'dev' ? t('tile.dev') : t('tile.version', { v: a.release }))),
-    el('p', { class: 'studio-tile-role' }, a.role),
-    el('p', { class: 'studio-tile-short' }, a.short),
+    el('p', { class: 'studio-tile-role' }, word(a.slug, 'role', a.role)),
+    el('p', { class: 'studio-tile-short' }, word(a.slug, 'short', a.short)),
     el('div', { class: 'studio-tile-foot' },
       el('button', { type: 'button', class: 'studio-btn studio-btn-plot', 'data-open-app': a.slug, onclick: () => openApp(a.slug) }, t('tile.open'), el('span', { class: 'visually-hidden' }, ' ' + a.name)),
       el('span', { class: 'studio-tile-count', 'data-tile-count': a.slug, hidden: true }))),
   ));
   const up = $('[data-upcoming]');
   up.replaceChildren(...(suite.upcoming || []).map((u) => el('div', { class: 'studio-upcoming', 'aria-disabled': 'true' },
-    el('h3', {}, u.name), el('p', { class: 'studio-upcoming-role' }, t('upcoming.role')), el('p', {}, u.short), el('span', { class: 'studio-upcoming-tag' }, t('upcoming.tag')))));
+    el('h3', {}, u.name), el('p', { class: 'studio-upcoming-role' }, t('upcoming.role')), el('p', {}, word(u.slug, 'short', u.short)), el('span', { class: 'studio-upcoming-tag' }, t('upcoming.tag')))));
 }
 
 function renderWindows() {
@@ -273,10 +294,39 @@ function renderWindows() {
     const c = doc.querySelector(`[data-tile-count="${a.slug}"]`);
     if (c) { c.hidden = !n; c.textContent = t('tile.windows', { n }); }
   }
+  // Tablets: the apps are views in Studio's one window, so this list is the switcher, with Close (TB.4).
+  const closable = tablet && desk && desk.windows && typeof desk.windows.close === 'function';
   box.querySelector('ul').replaceChildren(...list.map((w) => el('li', { class: 'studio-win layer-' + (appBy[w.app]?.layer || 'blue') },
     el('span', { class: 'studio-swatch', 'aria-hidden': 'true' }),
     el('span', { class: 'studio-win-title' }, w.title || appName(w.app)),
-    el('button', { type: 'button', class: 'studio-btn studio-btn-sm', onclick: () => focusWindow(w) }, t('windows.show')))));
+    el('button', { type: 'button', class: 'studio-btn studio-btn-sm', onclick: () => focusWindow(w) }, t('windows.show')),
+    closable ? el('button', { type: 'button', class: 'studio-btn studio-btn-sm studio-btn-line', 'data-close-window': w.id, onclick: () => closeView(w) }, t('windows.close')) : null)));
+}
+
+/** Tablets: close an app's view; an app with unsaved work is closed only after asking. */
+async function closeView(w) {
+  let done = await desk.windows.close(w.id).catch(() => false);
+  if (!done) {
+    const sure = await confirmBox(t('windows.unsaved.title', { app: appName(w.app) }), t('windows.unsaved.body'), t('windows.unsaved.go'));
+    if (sure) done = await desk.windows.close(w.id, { force: true }).catch(() => false);
+  }
+  if (done) refreshWindows();
+}
+
+/** A yes/no question in the hub's own dialog. → true when the person chose `go`. */
+function confirmBox(title, body, go) {
+  const dlg = $('[data-confirm]');
+  dlg.querySelector('[data-confirm-title]').textContent = title;
+  dlg.querySelector('[data-confirm-body]').textContent = body;
+  const goBtn = dlg.querySelector('[data-confirm-go]');
+  goBtn.textContent = go;
+  return new Promise((resolve) => {
+    const done = (v) => { dlg.close(); resolve(v); };
+    goBtn.onclick = () => done(true);
+    dlg.querySelector('[data-confirm-cancel]').onclick = () => done(false);
+    dlg.addEventListener('cancel', () => done(false), { once: true });
+    dlg.showModal();
+  });
 }
 
 async function focusWindow(w) {
@@ -474,6 +524,19 @@ async function openCloud(d, msg) {
 let client = null;
 let queue = null;
 let acct = { state: 'signed_out' };
+let acctRead = false;          // the first read after Studio opens is not "just signed in" (SI.4)
+let justSignedIn = false;
+let lastAcctRead = 0;
+let acctGen = 0;               // refreshAccount calls overlap (sign-out, the shell's change event, focus); the newest one decides
+// The shell keeps ONE account listener (bridge.js: account.onChange replaces the previous one), so the hub subscribes once
+// and hands the event to each of its parts (the account card, the Join card). Parts never call desk.account.onChange.
+const accountListeners = new Set();
+if (desk && desk.account && typeof desk.account.onChange === 'function') {
+  desk.account.onChange((ev) => { for (const fn of accountListeners) { try { fn(ev); } catch (e) { console.warn('account listener', e); } } });
+}
+const onAccountChange = (fn) => { accountListeners.add(fn); return () => accountListeners.delete(fn); };
+let avatars = null, avatarNow = { big: null, small: null }, avatarUrl = null;
+const SITE_URL = 'https://getcadcraft.com';
 let model = null;
 let lastError = null;
 
@@ -489,10 +552,26 @@ function cloudMessage(e) {
 
 async function refreshAccount() {
   if (!desk || !desk.account) return;
-  try { acct = await desk.account.status(); } catch { acct = { state: 'signed_out' }; }
+  const gen = ++acctGen;
+  let next;
+  try { next = await desk.account.status(); } catch { next = { state: 'signed_out' }; }
+  if (gen !== acctGen) return;   // a newer read started meanwhile: it has the newer state and renders
+  const was = acct.state;
+  acct = next;
+  if (acctRead && was !== 'signed_in' && acct.state === 'signed_in') justSignedIn = true;   // SI.4: say who, right away
+  if (acct.state !== 'signed_in') justSignedIn = false;
+  acctRead = true;
+  lastAcctRead = Date.now();
   if (acct.state === 'signed_in') {
     try {
-      model = cardModel(await client.status(), { workspace: ls.get(LS.ws) });
+      const status = await client.status();
+      // /api/v1/me: the picture (SI.7: whether there is one and when it changed; the bytes come once per change) and the
+      // team slugs for the website links (SI.6). Without it the card still shows, links fall back to /account.
+      let me = null;
+      try { me = await client.me(); } catch { /* offline or refused: the kept picture */ }
+      model = cardModel(status, { workspace: ls.get(LS.ws), me });
+      try { avatarNow = me && me.user ? await avatars.refresh(me.user.avatar || null) : avatars.cached(); } catch { avatarNow = avatars.cached(); }
+      if (avatarUrl) { URL.revokeObjectURL(avatarUrl); avatarUrl = null; }   // made again from the current bytes
       lastError = null;
       queue.resume();
       if (model && model.workspace && model.workspace.open) {
@@ -504,7 +583,8 @@ async function refreshAccount() {
       lastError = e;
       if (e instanceof CloudError && SIGN_IN_AGAIN.has(e.code)) { model = null; cloudList = null; }
     }
-  } else { model = null; cloudList = null; }
+  } else { model = null; cloudList = null; if (avatars) avatars.forget(); avatarNow = { big: null, small: null }; if (avatarUrl) { URL.revokeObjectURL(avatarUrl); avatarUrl = null; } }
+  if (gen !== acctGen) return;
   await renderAccount();
   renderCloudList();
 }
@@ -512,7 +592,6 @@ async function refreshAccount() {
 async function renderAccount() {
   const card = $('[data-account]');
   if (!desk || !desk.account) { card.hidden = true; return; }
-  card.hidden = false;
   const body = card.querySelector('[data-account-body]');
   const q = queue ? await queue.summary() : { waiting: 0, conflict: 0, failed: 0, paused: null };
   const kids = [];
@@ -529,8 +608,17 @@ async function renderAccount() {
       el('div', { class: 'studio-btnrow' }, el('button', { type: 'button', class: 'studio-btn studio-btn-plot', 'data-sign-in': true, onclick: () => desk.account.open() }, t('account.signin'))));
   } else {
     const w = model.workspace;
+    if (justSignedIn) {
+      // SI.4: right after the browser approved, say whose account this Studio is now on.
+      kids.push(el('div', { class: 'studio-signed-notice', role: 'status', 'data-signed-notice': true },
+        el('p', {}, t('account.justsigned', { name: model.user.name || model.user.email, email: model.user.email })),
+        el('div', { class: 'studio-btnrow' },
+          el('button', { type: 'button', class: 'studio-btn studio-btn-sm', 'data-thats-me': true, onclick: () => { justSignedIn = false; renderAccount(); } }, t('account.thatsme')),
+          el('button', { type: 'button', class: 'studio-btn studio-btn-sm studio-btn-line', 'data-not-me': true, onclick: () => signOutNow() }, t('account.notyou')))));
+    }
+    kids.push(el('div', { class: 'studio-who' }, avatarEl(model.user, 'lg'),
+      el('div', {}, el('strong', { 'data-who-name': true }, model.user.name || model.user.email), model.user.name ? el('div', { class: 'studio-muted' }, model.user.email) : null)));
     kids.push(el('dl', { class: 'studio-dl' },
-      el('dt', {}, t('account.as')), el('dd', {}, model.user.name || model.user.email, model.user.name ? el('span', { class: 'studio-muted' }, ' ' + model.user.email) : null),
       el('dt', {}, t('account.workspace')), el('dd', {}, model.workspaces.length > 1
         ? el('select', { class: 'select-cc studio-select', 'aria-label': t('account.workspace'), onchange: (ev) => { ls.set(LS.ws, ev.target.value); refreshAccount(); } },
           ...model.workspaces.map((x) => el('option', { value: x.uuid, selected: w && x.uuid === w.uuid }, x.name)))
@@ -540,15 +628,50 @@ async function renderAccount() {
         w && w.fraction !== null ? el('span', { class: 'studio-meter', role: 'img', 'aria-label': t('account.storage.used', { used: w.used, quota: w.quota }) }, el('span', { style: 'width:' + Math.round(w.fraction * 100) + '%' })) : null),
       el('dt', {}, t('account.sync')), el('dd', { 'data-sync-state': true }, syncText(q, w))));
     if (q.conflict || q.failed) kids.push(queueList());
+    // SI.6: the account, teams and billing live on the website; Studio links there (system browser) and never shows them.
+    const team = w && w.kind === 'team' && w.slug ? w.slug : null;
+    const site = (label, p, attr) => el('a', { href: SITE_URL + p, target: '_blank', rel: 'noopener noreferrer', class: 'studio-btn studio-btn-sm studio-btn-line', [attr]: true }, label);
+    kids.push(el('div', { class: 'studio-btnrow studio-sitelinks' },
+      site(t('account.manage'), '/account', 'data-site-account'),
+      site(t('account.teams'), team ? '/teams/' + encodeURIComponent(team) : '/account', 'data-site-teams'),
+      site(t('account.billing'), team ? '/teams/' + encodeURIComponent(team) + '/licenses' : '/account/add-app', 'data-site-billing')),
+      el('p', { class: 'studio-hint' }, t('account.links.hint')));
     kids.push(el('div', { class: 'studio-btnrow' },
       el('button', { type: 'button', class: 'studio-btn studio-btn-line', onclick: () => refreshAccount() }, t('account.refresh')),
-      el('button', { type: 'button', class: 'studio-btn studio-btn-line', 'data-sign-out': true, onclick: async () => {
-        const r = await desk.account.signOut().catch(() => null);
-        if (r && r.message) say(r.message);
-        refreshAccount();
-      } }, t('account.signout'))));
+      el('button', { type: 'button', class: 'studio-btn studio-btn-line', 'data-sign-out': true, onclick: () => signOutNow() }, t('account.signout'))));
   }
   body.replaceChildren(...kids.filter(Boolean));
+  card.hidden = false;   // shown with its content, never as an empty card while the queue is read
+  renderBarAvatar();
+}
+
+async function signOutNow() {
+  const r = await desk.account.signOut().catch(() => null);
+  if (r && r.message) say(r.message);
+  justSignedIn = false;
+  refreshAccount();
+}
+
+/** The person's picture (checked as an image in avatar.js), else their initials in a circle — like the site's .avatar-cc. */
+function avatarEl(user, size = 'sm') {
+  const name = (user && (user.name || user.email)) || '';
+  if (avatarNow.big) {
+    if (!avatarUrl) avatarUrl = URL.createObjectURL(new Blob([avatarNow.big], { type: 'image/webp' }));
+    return el('img', { class: 'studio-avatar is-' + size, src: avatarUrl, alt: '', 'data-avatar': 'picture' });
+  }
+  const parts = name.split(/[\s@.]+/).filter(Boolean);
+  const ini = ((parts[0] || '?')[0] + (parts.length > 1 && user && user.name ? parts[parts.length - 1][0] : '')).toUpperCase();
+  return el('span', { class: 'studio-avatar is-' + size, 'aria-hidden': 'true', 'data-avatar': 'initials' }, ini);
+}
+function renderBarAvatar() {
+  const slot = $('[data-bar-avatar]');
+  if (!slot) return;
+  // Who: the account as the shell keeps it (works offline too), the server's copy when there is one.
+  const u = model ? model.user : (acct.user && acct.user.email ? { name: String(acct.user.name || ''), email: String(acct.user.email) } : null);
+  const on = !!(desk && desk.account && acct.state === 'signed_in' && u);
+  slot.hidden = !on;
+  slot.replaceChildren(...(on ? [avatarEl(u, 'sm')] : []));
+  if (on) slot.title = t('account.as') + ' ' + (u.name ? u.name + ' (' + u.email + ')' : u.email);
 }
 
 function syncText(q, w) {
@@ -607,13 +730,17 @@ function wireCloudChannel() {
 function startCloud() {
   if (!desk || !desk.account || !desk.cloud) return;
   client = cloudClient(desk.cloud);
+  avatars = avatarStore({ request: desk.cloud.request });
+  avatarNow = avatars.cached();
+  // SI.6: back from the website (a new seat, a new team): Studio reads the account again when its window comes forward.
+  window.addEventListener('focus', () => { if (acct.state === 'signed_in' && Date.now() - lastAcctRead > 20000) refreshAccount(); });
   queue = new SyncQueue({ client, onChange: (sum, ev) => {
     if (ev && ev.type === 'signin') { lastError = new CloudError(ev.code); refreshAccount(); return; }
     if (ev && ev.type === 'saved' && ev.item) channel.post('cloud.saved', { name: ev.item.name, result: ev.result && ev.result.data });
     if (ev && ev.type === 'conflict' && ev.item) channel.post('cloud.conflict', { name: ev.item.name });
     renderAccount();
   } });
-  if (typeof desk.account.onChange === 'function') desk.account.onChange(() => refreshAccount());
+  onAccountChange(() => refreshAccount());
   window.addEventListener('online', () => { lastError = null; queue.flush().then(renderAccount); });
   window.addEventListener('offline', () => renderAccount());
   setInterval(() => { if (acct.state === 'signed_in') queue.flush(); }, 60000);
@@ -623,7 +750,70 @@ function startCloud() {
 
 // ------------------------------------------------------------------ what's new + updates (H.7)
 
+// News from getcadcraft.com (0.5 SI.5): posts and tutorials first, then the release notes packed into this build. On by
+// default; Settings › "Get news from getcadcraft.com" turns it off (nothing is asked of the site then).
+const feed = newsFeed();
+const newsOn = () => ls.get(LS.news) !== '0';
+let studioVersion = null;
+// Dismissing the card (owner, 2026-10-15): × in its heading; it stays away until something is newer than what it showed —
+// a post published after the dismissal, a newer release, another build (new release notes) — or an update is ready to
+// install. Settings › News › "Show What's new again" brings it back. news.js newsDismissal() keeps the mark.
+const dismissal = newsDismissal();
+const newsBuild = () => String(suite.build || '') + ':' + suite.apps.map((a) => a.slug + '@' + a.release).join(',');
+let newsNow = { items: [], latest: null };
+let updateReady = false;
+function applyNewsCard() {
+  const card = $('[data-news-card]');
+  if (!card) return;
+  const away = !updateReady && dismissal.hidden(newsOn() ? newsNow : { items: [], latest: null }, newsBuild());
+  card.hidden = away;
+  const back = $('[data-news-show]');
+  if (back) back.hidden = !dismissal.get();
+}
+function wireNewsDismiss() {
+  $('[data-news-dismiss]').addEventListener('click', () => {
+    dismissal.dismiss(newsOn() ? newsNow : { items: [], latest: null }, newsBuild());
+    updateReady = false;
+    applyNewsCard();
+    say(t('news.dismissed'));
+    $('[data-open-settings]').focus();   // the button is gone; Settings is where it comes back
+  });
+  $('[data-news-show]').addEventListener('click', () => { dismissal.clear(); applyNewsCard(); say(t('settings.news.shown')); });
+}
+async function renderSiteNews({ force = false } = {}) {
+  const box = $('[data-site-news]');
+  if (!box) return;
+  if (!newsOn()) { box.hidden = true; box.replaceChildren(); newsNow = { items: [], latest: null }; applyNewsCard(); return; }
+  if (studioVersion === null) {
+    studioVersion = suite.build || '';
+    if (desk) { try { studioVersion = String((await desk.info()).version || studioVersion); } catch { /* keep the build */ } }
+  }
+  const show = (n) => {
+    const kids = [];
+    if (n.latest && newer(n.latest.version, studioVersion)) {
+      kids.push(el('p', { class: 'studio-newer', 'data-newer': n.latest.version }, icon('arrow-up-circle'), ' ', t('news.newer', { v: n.latest.version }), ' ',
+        el('a', { href: n.latest.url, target: '_blank', rel: 'noopener noreferrer' }, t('news.newer.link'))));
+    }
+    if (n.items.length) {
+      kids.push(el('ul', { class: 'studio-newslist studio-sitenews', 'data-site-news-list': true }, ...n.items.map((i) => el('li', { class: 'studio-news' + (i.app && appBy[i.app] ? ' layer-' + appBy[i.app].layer : '') },
+        el('a', { href: i.url, target: '_blank', rel: 'noopener noreferrer', class: 'studio-news-title' }, i.title), ' ',
+        i.kind === 'tutorial' ? el('span', { class: 'studio-news-tag' }, t('news.tutorial')) : null, ' ',
+        el('span', { class: 'studio-muted' }, new Date(i.date).toLocaleDateString(locale(), { dateStyle: 'medium' })),
+        i.summary ? el('p', {}, i.summary) : null))));
+    } else if (!n.at) kids.push(el('p', { class: 'studio-muted' }, n.offline ? t('news.offline.none') : t('news.loading')));
+    if (n.offline && n.at) kids.push(el('p', { class: 'studio-hint' }, t('news.offline', { when: whenText(n.at) })));
+    kids.push(el('h3', { class: 'studio-h3' }, t('news.notes')));
+    box.replaceChildren(...kids);
+    box.hidden = false;
+    newsNow = n;
+    applyNewsCard();
+  };
+  show(feed.cached());
+  show(await feed.load({ force }));
+}
+
 async function renderNews() {
+  renderSiteNews();
   const ul = $('[data-news]');
   ul.replaceChildren(...suite.apps.map((a) => el('li', { class: 'studio-news layer-' + a.layer },
     el('span', { class: 'studio-swatch', 'aria-hidden': 'true' }),
@@ -633,10 +823,12 @@ async function renderNews() {
   if (!desk) { box.replaceChildren(el('p', {}, t('updates.browser'))); return; }
   let info = {};
   try { info = await desk.info(); } catch { info = {}; }
-  if (/^(android|ios|ipados)$/.test(String(info.platform || ''))) { box.replaceChildren(el('p', {}, t('updates.store'))); return; }
+  if (info.store === true || /^(android|ios|ipados)$/.test(String(info.platform || ''))) { box.replaceChildren(el('p', {}, t('updates.store'))); return; }
   let st = null;
   try { st = desk.updates ? await desk.updates.status() : null; } catch { st = null; }
   if (!st || !st.available) { box.replaceChildren(el('p', {}, t('updates.none'))); return; }
+  updateReady = true;   // an update to install brings a dismissed card back
+  applyNewsCard();
   const auto = el('input', { type: 'checkbox', id: 'studio-auto-update', checked: !!st.auto, onchange: (e) => desk.updates.setAuto(e.target.checked).catch(() => {}) });
   box.replaceChildren(el('p', {}, t('updates.one')),
     el('div', { class: 'studio-btnrow' }, el('button', { type: 'button', class: 'studio-btn', onclick: async () => {
@@ -673,7 +865,9 @@ function wireOffline() {
     state.textContent = n === jobs.length ? t('offline.ready', { when: whenText(Date.parse(st.map((x) => x.when).filter(Boolean).sort()[0])) })
       : n ? t('offline.some', { n: n - (st[0].saved ? 1 : 0), total: jobs.length - 1 }) : t('offline.body');
   };
-  navigator.serviceWorker.register('./sw.js', { scope: './' }).then(() => navigator.serviceWorker.ready).then((r) => { reg = r; return status(); })
+  // The button waits for the worker: a click before it is ready used to do nothing at all.
+  saveBtn.disabled = true;
+  navigator.serviceWorker.register('./sw.js', { scope: './' }).then(() => navigator.serviceWorker.ready).then((r) => { reg = r; saveBtn.disabled = false; return status(); })
     .catch(() => { state.textContent = t('offline.unavailable'); saveBtn.disabled = true; });
   saveBtn.addEventListener('click', async () => {
     if (!reg) return;
@@ -725,7 +919,11 @@ function wireSettings() {
   lang.disabled = langs.length < 2;
   lang.addEventListener('change', () => { ls.set(LS.lang, lang.value); location.reload(); });
   renderSettingsTypes();
+  const news = dlg.querySelector('[data-set-news]');
+  news.checked = newsOn();
+  news.addEventListener('change', () => { ls.set(LS.news, news.checked ? null : '0'); if (!news.checked) feed.forget(); renderSiteNews({ force: news.checked }); });
   dlg.querySelector('[data-set-forget]').addEventListener('click', () => { ls.set(LS.always, null); renderSettingsTypes(); say(t('settings.types.forgot')); });
+  wireInputFamily(dlg);
   $('[data-open-settings]').addEventListener('click', () => dlg.showModal());
   dlg.querySelector('[data-close]').addEventListener('click', () => dlg.close());
   doc.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === ',') { e.preventDefault(); dlg.open ? dlg.close() : dlg.showModal(); } });
@@ -733,19 +931,41 @@ function wireSettings() {
   window.addEventListener('storage', (e) => { if (e.key === 'cc-space') { const v = e.newValue || 'system'; doc.documentElement.setAttribute('data-space', v === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'model' : 'paper') : v); } });
 }
 
+// Menus, keys and mouse in every app (0.5 IP.4; the apps' side is the shell's assets/js/app-input.js): one style family for
+// every app, kept in localStorage 'cc-input-family' {family, at} — the hub and every app window share this origin, and an app
+// follows a choice made after its own last pick, taking its own member of the family. '' = each app keeps its own style.
+const INPUT_FAMILY_KEY = 'cc-input-family';
+const INPUT_FAMILIES = ['own', 'menus', 'ribbon', 'classic'];
+const INPUT_NAMES = { '': () => t('settings.input.each'), own: () => t('settings.input.own'), menus: () => t('settings.input.menus'), ribbon: () => t('settings.input.ribbon'), classic: () => t('settings.input.classic') };
+function readInputFamily() {
+  try { const v = JSON.parse(localStorage.getItem(INPUT_FAMILY_KEY) || 'null'); return v && INPUT_FAMILIES.includes(v.family) && Number.isFinite(v.at) ? v.family : ''; } catch { return ''; }
+}
+function wireInputFamily(dlg) {
+  const sel = dlg.querySelector('[data-set-input]');
+  if (!sel) return;
+  const fill = () => sel.replaceChildren(...['', ...INPUT_FAMILIES].map((f) => el('option', { value: f, selected: f === readInputFamily() }, INPUT_NAMES[f]())));
+  fill();
+  sel.addEventListener('change', () => {
+    if (sel.value) ls.set(INPUT_FAMILY_KEY, JSON.stringify({ family: sel.value, at: Date.now() }));
+    else ls.set(INPUT_FAMILY_KEY, null);
+    say(t(sel.value ? 'settings.input.on' : 'settings.input.off', { style: INPUT_NAMES[sel.value]() }));
+  });
+  window.addEventListener('storage', (e) => { if (e.key === INPUT_FAMILY_KEY) fill(); });   // an app chose "Use this style in every app"
+}
+
 function wireHelp() {
   const dlg = $('[data-help]');
   $('[data-open-help]').addEventListener('click', () => dlg.showModal());
   dlg.querySelector('[data-close]').addEventListener('click', () => dlg.close());
   doc.addEventListener('keydown', (e) => { if (e.key === 'F1') { e.preventDefault(); dlg.open ? dlg.close() : dlg.showModal(); } });
-  const topics = ['start', 'open', 'recent', 'windows', 'account', 'assistants', 'offline'];
+  const topics = ['start', 'open', 'recent', 'windows', 'live', 'account', 'assistants', 'offline'];
   dlg.querySelector('[data-help-body]').replaceChildren(...topics.filter((k) => k !== 'account' || desk).map((k) => el('section', { class: 'studio-help-topic' },
     el('h3', {}, t('help.' + k + '.title')), el('p', {}, t('help.' + k + '.body')))));
 }
 
 // Words that are in the page as data-t attributes (static markup in index.html).
 function fillStatic() {
-  doc.querySelectorAll('[data-t]').forEach((n) => { n.textContent = t(n.getAttribute('data-t')); });
+  doc.querySelectorAll('[data-t]').forEach((n) => { const k = n.getAttribute('data-t'); if (k) n.textContent = t(k); });
   doc.querySelectorAll('[data-t-title]').forEach((n) => { n.title = t(n.getAttribute('data-t-title')); });
   doc.querySelectorAll('[data-t-label]').forEach((n) => { n.setAttribute('aria-label', t(n.getAttribute('data-t-label'))); });
   doc.title = t('studio.name');
@@ -755,7 +975,21 @@ function fillStatic() {
 
 fillStatic();
 if (desk) { const tag = doc.querySelector('[data-t="edition.browser"]'); if (tag) tag.textContent = t('edition.desktop'); }
+if (desk && typeof desk.info === 'function') {
+  desk.info().then((i) => {
+    if (!i || !i.mobile) return;
+    tablet = true;
+    doc.documentElement.classList.add('is-tablet');
+    const tag = doc.querySelector('[data-t="edition.browser"]');
+    if (tag) tag.textContent = t('edition.tablet');
+    const wt = doc.getElementById('studio-win-h');
+    if (wt) wt.textContent = t('windows.title.tablet');
+    renderWindows();
+  }).catch(() => {});
+}
 renderTiles();
+wireNewsDismiss();
+applyNewsCard();
 renderNews();
 wireDrop();
 wireSettings();
@@ -768,12 +1002,14 @@ doc.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.t
 renderRecent();
 window.addEventListener('focus', () => renderRecent());
 doc.addEventListener('visibilitychange', () => { if (!doc.hidden) { renderRecent(); refreshWindows(); } });
+setInterval(() => renderSiteNews(), 3600000);   // the feed itself asks the site at most once a day
 refreshWindows();
 if (desk && desk.windows && typeof desk.windows.onChange === 'function') desk.windows.onChange(() => refreshWindows());
 wireLaunch();
 startCloud();
+const join = wireJoin({ doc, win: window, desk, onAccountChange, t, say, openApp, askApp, appBy, apps: APPS });
 if (!desk || !desk.account) $('[data-account]').hidden = true;
 doc.documentElement.classList.add('studio-ready');
 
 // For tests and add-ons: what the hub decided, never the person's files.
-window.cadcraftStudioHub = Object.freeze({ suite, route: (name) => route(name, { apps: APPS, always: always() }), channel, openApp, refreshWindows, renderRecent, refreshAccount, queue: () => queue });
+window.cadcraftStudioHub = Object.freeze({ suite, route: (name) => route(name, { apps: APPS, always: always() }), channel, openApp, refreshWindows, renderRecent, refreshAccount, queue: () => queue, join: (text) => join && join.go(text) });

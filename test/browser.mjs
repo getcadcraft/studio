@@ -16,7 +16,7 @@ const args = process.argv.slice(2);
 const BUILD = args.includes('--build') ? args[args.indexOf('--build') + 1] : 'dev';
 const SHOTS = args.includes('--shots') ? path.resolve(args[args.indexOf('--shots') + 1]) : null;
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
-const DIR = SUITE(BUILD);
+const DIR = args.includes('--suite') ? path.resolve(args[args.indexOf('--suite') + 1]) : SUITE(BUILD);
 if (!fs.existsSync(path.join(DIR, 'index.html'))) { console.error('no suite at ' + DIR + ' (node pack/suite.mjs first)'); process.exit(1); }
 need(SITE, 'CADCRAFT_SITE', 'the site\'s folder (the test drawings are its fixtures/)');
 const suite = JSON.parse(fs.readFileSync(path.join(DIR, 'release.json'), 'utf8'));
@@ -33,6 +33,25 @@ const watch = (p, label) => {
   p.on('pageerror', (e) => problems.push(label + ': ' + e.message));
 };
 ctx.on('page', (p) => watch(p, 'window'));
+// getcadcraft.com, stood in for (SI.5: the hub's only requests off this computer are the anonymous news + catalog reads).
+const site = { calls: [], down: false, other: [] };
+await ctx.route((u) => !/^http:\/\/127\.0\.0\.1[:/]/.test(u.href) && !/^(data|blob|about):/.test(u.protocol), async (route) => {
+  const u = new URL(route.request().url());
+  if (u.origin !== 'https://getcadcraft.com') { site.other.push(u.href); return route.abort(); }
+  site.calls.push(u.pathname + u.search);
+  if (site.down) return route.abort('internetdisconnected');
+  const body = u.pathname === '/api/v1/news'
+    ? { status: 'success', data: { items: [{ kind: 'news', slug: 'studio-live', title: 'Studio Live is here', summary: 'Work together on one file.', app: null, published_at: '2026-10-20T10:00:00Z', url: 'https://getcadcraft.com/news/studio-live' },
+      { kind: 'tutorial', slug: 'share-live', title: 'Share a drawing live', summary: '<b>not bold</b>', app: 'cadcraft', published_at: '2026-10-19T10:00:00Z', url: 'https://getcadcraft.com/tutorials/cadcraft/share-live' }] } }
+    : u.pathname === '/api/v1/catalog' ? { status: 'success', data: { downloads: { version: '9.9', url: 'https://getcadcraft.com/download', studio: { version: '9.9' } } } } : null;
+  return body ? route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) }) : route.fulfill({ status: 404, body: '' });
+});
+// A dev build never says "a newer version is out"; this run's hub pretends to be 0.4 so the line can be checked.
+const asRelease = srv.url + '?space=paper';
+await ctx.route(asRelease, async (route) => {
+  const r = await route.fetch();
+  route.fulfill({ response: r, body: (await r.text()).replace('"build":"dev"', '"build":"0.4"') });
+});
 const hub = await ctx.newPage();
 const shot = async (p, n) => { if (SHOTS) await p.screenshot({ path: path.join(SHOTS, n + '.png'), fullPage: n.startsWith('hub') }); };
 
@@ -74,6 +93,89 @@ try {
   ok(!(await hub.$eval('[data-account]', (n) => !n.hidden)), 'browser edition: no account card (cloud is desktop only, D.4)');
   ok(await hub.$eval('[data-assist]', (n) => n.hidden), 'browser edition: no "Connect an assistant" card (no local server, X.5)');
   await shot(hub, 'hub-paper');
+
+  section('News from getcadcraft.com (SI.5)');
+  await hub.waitForSelector('[data-site-news-list]', { timeout: 8000 }).catch(() => {});
+  const newsText = await hub.textContent('[data-site-news]').catch(() => '');
+  ok(newsText.includes('Studio Live is here') && newsText.includes('Share a drawing live') && newsText.includes('Tutorial'), 'the latest posts and tutorials, before the build\'s own notes');
+  ok(newsText.includes('<b>not bold</b>') && !(await hub.$('[data-site-news] b')), 'text from the site stays text');
+  ok(await hub.$eval('[data-site-news] a.studio-news-title', (a) => a.href === 'https://getcadcraft.com/news/studio-live' && a.target === '_blank' && /noopener/.test(a.rel)), 'each post links to its page, in a new tab / the system browser');
+  ok(await hub.$eval('[data-newer="9.9"]', (n) => /Version 9\.9 is out/.test(n.textContent) && n.querySelector('a').href === 'https://getcadcraft.com/download').catch(() => false), '"Version 9.9 is out" with a link to /download (nothing downloads by itself)');
+  ok(site.calls.length === 2 && site.calls.every((c) => /^\/api\/v1\/(news\?limit=8|catalog)$/.test(c)), 'two anonymous requests: ' + site.calls.join(', '));
+  await hub.reload();
+  await hub.waitForSelector('[data-site-news-list]');
+  ok(site.calls.length === 2, 'opened again the same day: from the kept copy, no request');
+  site.down = true;
+  await hub.evaluate(() => { const k = 'cadcraft.studio.news'; const j = JSON.parse(localStorage.getItem(k)); j.at -= 2 * 86400000; localStorage.setItem(k, JSON.stringify(j)); });
+  await hub.reload();
+  await hub.waitForFunction(() => /Offline: these are the posts/.test(document.querySelector('[data-site-news]').textContent), null, { timeout: 8000 }).catch(() => {});
+  ok(/Offline: these are the posts/.test(await hub.textContent('[data-site-news]')) && (await hub.textContent('[data-site-news]')).includes('Studio Live is here'), 'a day later with the network cut: the kept posts, marked offline');
+  site.down = false;
+  await hub.click('[data-open-settings]');
+  ok(await hub.isChecked('[data-set-news]'), 'Settings: "Get news from getcadcraft.com" is on by default');
+  await hub.uncheck('[data-set-news]');
+  await hub.click('[data-settings] [data-close]');
+  ok(await hub.$eval('[data-site-news]', (n) => n.hidden), 'turned off: no news on the card');
+  const before = site.calls.length;
+  await hub.reload();
+  await hub.waitForSelector('html.studio-ready');
+  await hub.waitForTimeout(500);
+  ok(site.calls.length === before && await hub.$eval('[data-site-news]', (n) => n.hidden), 'and nothing is asked of the site after that');
+  await hub.click('[data-open-settings]');
+  await hub.check('[data-set-news]');
+  await hub.click('[data-settings] [data-close]');
+  await shot(hub, 'hub-news');
+
+  section('Dismissing What\'s new (owner, 2026-10-15)');
+  const xBtn = '[data-news-card] [data-news-dismiss]';
+  await hub.waitForSelector('[data-site-news-list]');
+  ok((await hub.getAttribute(xBtn, 'aria-label')) === 'Dismiss What\'s new', 'a dismiss button with an accessible name');
+  const xBox = await hub.$eval(xBtn, (b) => { const r = b.getBoundingClientRect(); return [r.width, r.height, parseFloat(getComputedStyle(document.documentElement).fontSize)]; });
+  ok(xBox[0] >= 2.75 * xBox[2] - 0.5 && xBox[1] >= 2.75 * xBox[2] - 0.5, 'touch-sized: at least 2.75rem square (' + xBox.map((v) => Math.round(v)).join(' × ') + ')');
+  await hub.focus(xBtn);
+  ok(await hub.evaluate(() => document.activeElement && document.activeElement.hasAttribute('data-news-dismiss')), 'reachable by keyboard');
+  await hub.keyboard.press('Enter');
+  await hub.waitForSelector('[data-news-card]', { state: 'hidden', timeout: 5000 }).catch(() => {});
+  ok(await hub.$eval('[data-news-card]', (n) => n.hidden), 'Enter dismisses it: the card is gone');
+  ok(await hub.evaluate(() => document.activeElement && document.activeElement.hasAttribute('data-open-settings')), 'focus moves to Settings (where it comes back), not lost on the page');
+  ok(await hub.evaluate(() => { const j = JSON.parse(localStorage.getItem('cadcraft.studio.news.dismissed') || 'null'); return !!j && Number.isFinite(j.at) && j.version === '9.9'; }), 'remembered: when, and the newest release it showed');
+  await hub.reload();
+  await hub.waitForSelector('html.studio-ready');
+  await hub.waitForTimeout(400);
+  ok(await hub.$eval('[data-news-card]', (n) => n.hidden), 'still away after a restart (nothing newer)');
+  await hub.click('[data-open-settings]');
+  ok(await hub.isVisible('[data-news-show]'), 'Settings › News: "Show What\'s new again"');
+  await hub.click('[data-news-show]');
+  await hub.click('[data-settings] [data-close]');
+  ok(await hub.$eval('[data-news-card]', (n) => !n.hidden) && !(await hub.evaluate(() => localStorage.getItem('cadcraft.studio.news.dismissed'))), 'brought back, the mark forgotten');
+  await hub.click(xBtn);
+  // A post published after the dismissal brings it back by itself (the feed is read again a day later).
+  await hub.evaluate(() => {
+    const k = 'cadcraft.studio.news'; const j = JSON.parse(localStorage.getItem(k));
+    const m = JSON.parse(localStorage.getItem('cadcraft.studio.news.dismissed'));   // the stand-in posts are dated ahead of today
+    j.items.unshift({ kind: 'news', title: 'Newer than the dismissal', summary: '', app: null, date: Math.max(m.at, m.post) + 60000, url: 'https://getcadcraft.com/news/newer' });
+    localStorage.setItem(k, JSON.stringify(j));
+  });
+  await hub.reload();
+  await hub.waitForSelector('html.studio-ready');
+  await hub.waitForTimeout(400);
+  ok(await hub.$eval('[data-news-card]', (n) => !n.hidden) && (await hub.textContent('[data-site-news]')).includes('Newer than the dismissal'), 'a newer post: the card is back by itself');
+  // Phones (the owner's ~412 px Android): the button stays in the heading row, inside the screen.
+  await hub.evaluate(() => localStorage.removeItem('cadcraft.studio.news.dismissed'));
+  await hub.setViewportSize({ width: 412, height: 915 });
+  await hub.reload();
+  await hub.waitForSelector('html.studio-ready');
+  await hub.locator(xBtn).scrollIntoViewIfNeeded();
+  const phone = await hub.$eval(xBtn, (b) => { const r = b.getBoundingClientRect(), h = document.getElementById('studio-news-h').getBoundingClientRect(); return { right: r.right, w: innerWidth, top: r.top, ht: h.top, hb: h.bottom, sw: document.documentElement.scrollWidth }; });
+  ok(phone.right <= phone.w && phone.sw <= phone.w && phone.top < phone.hb, 'on a 412 px phone: in the heading row, on screen, no sideways scroll');
+  await shot(hub, 'news-phone');
+  await hub.tap(xBtn).catch(() => hub.click(xBtn));
+  ok(await hub.$eval('[data-news-card]', (n) => n.hidden), 'tapped away on the phone');
+  await hub.evaluate(() => localStorage.removeItem('cadcraft.studio.news.dismissed'));
+  await hub.setViewportSize({ width: 1440, height: 950 });
+  await hub.reload();
+  await hub.waitForSelector('html.studio-ready');
+  await ctx.unroute(asRelease);
 
   section('Every app opens from the hub (H.3) and joins the channel (H.11)');
   const wins = [];
@@ -231,6 +333,7 @@ try {
   section('Clean');
   const okProblems = problems.filter((p) => !/ERR_CONNECTION|ERR_EMPTY_RESPONSE|net::|Failed to fetch/.test(p));
   ok(!okProblems.length, 'no console errors' + (okProblems.length ? ': ' + okProblems.slice(0, 5).join(' | ') : ''));
+  ok(!site.other.length, 'nothing else left this computer' + (site.other.length ? ': ' + [...new Set(site.other)].slice(0, 5).join(', ') : ''));
   ok(!srv.outside.length, 'no request left the suite\'s folder' + (srv.outside.length ? ': ' + [...new Set(srv.outside)].slice(0, 5).join(', ') : ''));
 } finally {
   await browser.close();

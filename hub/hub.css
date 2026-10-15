@@ -134,6 +134,11 @@ body.studio {
 /* Side cards */
 .studio-card { background: var(--sheet-2); border: var(--pen-1) solid var(--line); border-radius: var(--radius); padding: 1rem; }
 .studio-card p { margin: 0 0 0.5rem; }
+/* A card that can be put away (What's new): its heading and a close button, a touch-sized target everywhere. */
+.studio-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+.studio-card-head .studio-h { min-width: 0; }
+.studio-card-x { min-width: 2.75rem; min-height: 2.75rem; margin: -0.6rem -0.6rem 0 0; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.studio-card-x:focus-visible { outline: var(--pen-2) solid var(--action); outline-offset: 1px; }
 .studio-drop { text-align: center; border: var(--pen-2) dashed var(--line); cursor: pointer; }
 .studio-drop:hover, body.is-dropping .studio-drop { border-color: var(--action); }
 .studio-drop-icon { font-size: 2rem; color: var(--action); display: block; margin-bottom: 0.25rem; }
@@ -220,3 +225,74 @@ body.is-dropping .studio-dropveil {
 .studio-assist-pre { margin: 0; padding: 0.5rem; max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere;
   font-size: var(--fs-sm); background: var(--sheet); border: var(--pen-1) solid var(--grid); border-radius: 4px; }
 .studio-assist-dl code { font-size: var(--fs-sm); }
+
+/* Join a live session (0.5 LV.7) */
+.studio-input {
+  width: 100%; padding: 0.4rem 0.5rem; font: inherit; color: var(--ink); background: var(--sheet);
+  border: var(--pen-1) solid var(--line); border-radius: var(--radius);
+}
+.studio-input:focus-visible { outline: var(--pen-3) solid var(--action); outline-offset: 2px; }
+[data-live-join-input] { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 0.04em; }
+.studio-join-kind { margin: -0.4rem 0 0.75rem; font-size: var(--fs-sm); color: var(--ink-2); }
+.studio-join-kind[data-kind="link"]::before, .studio-join-kind[data-kind="code"]::before { content: ""; display: inline-block; width: 0.5rem; height: 0.5rem; margin-right: 0.4rem; border: var(--pen-2) solid var(--action); vertical-align: 0.05rem; }
+.studio-join-as { margin: 0 0 0.75rem; padding: 0.5rem 0.6rem; border-left: 0.25rem solid var(--action); background: var(--sheet); }
+.studio-join-as p { margin: 0 0 0.4rem; }
+[data-live-join-guest] > .studio-btn { margin-bottom: 0.75rem; }
+.studio-join-msg { margin: 0.5rem 0 0; padding: 0.35rem 0.5rem; border-left: 0.25rem solid var(--action); background: var(--sheet); }
+.studio-join-msg[data-kind="error"] { border-left-color: var(--layer-red); }
+
+/* News from getcadcraft.com (0.5 SI.5) */
+.studio-newer { margin: 0 0 0.75rem; padding: 0.5rem 0.6rem; border: var(--pen-2) solid var(--layer-green); font-weight: 600; }
+.studio-newer .bi { color: var(--layer-green); }
+.studio-sitenews { margin-bottom: 0.75rem; }
+.studio-news-title { font-weight: 700; }
+.studio-news-tag { font-size: 0.8rem; padding: 0 0.3rem; border: var(--pen-1) solid var(--line); border-radius: var(--radius); }
+
+/* The account: who is signed in (SI.4), the picture (SI.7), the website links (SI.6) */
+.studio-avatar {
+  display: inline-grid; place-items: center; flex: 0 0 auto; border-radius: 50%; overflow: hidden; object-fit: cover;
+  background: var(--ink-2); color: var(--sheet); font-weight: 700; width: 2rem; height: 2rem; font-size: 0.8rem;
+}
+.studio-avatar.is-lg { width: 3rem; height: 3rem; font-size: 1.05rem; }
+.studio-bar-avatar { display: inline-flex; margin-right: 0.5rem; }
+.studio-bar-avatar[hidden] { display: none; }
+.studio-who { display: flex; gap: 0.75rem; align-items: center; margin: 0 0 0.75rem; }
+.studio-signed-notice { margin: 0 0 0.75rem; padding: 0.5rem 0.6rem; border: var(--pen-2) solid var(--action); background: var(--sheet); }
+.studio-signed-notice p { margin: 0 0 0.4rem; font-weight: 600; }
+.studio-sitelinks { margin-top: 0.75rem; }
+a.studio-btn { text-decoration: none; display: inline-flex; align-items: center; }
+
+/* Tablets (docs/0.5-PART3.md TB.4; hub.js sets .is-tablet from the shell's info()): touch-sized targets, and a bar that
+   stays one row when the tablet is held upright (labels move into the buttons' titles). */
+html.is-tablet .studio-btn,
+html.is-tablet .studio-bar-btn { min-height: 2.75rem; }
+html.is-tablet .studio-btn-sm { min-height: 2.75rem; padding-left: 0.9rem; padding-right: 0.9rem; }
+html.is-tablet .studio-win { gap: 0.6rem; padding: 0.5rem 0; }
+html.is-tablet .studio-name { white-space: nowrap; }
+@media (max-width: 1000px) {
+  html.is-tablet .studio-bar-ver { display: none; }
+  html.is-tablet .studio-bar-btn { min-width: 2.75rem; justify-content: center; }
+  html.is-tablet .studio-bar-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+/* Phones (docs/0.5-FINAL.md PH.4, session `phones`; CSS only): one column, nothing past the edge, and the eight apps fit in
+   about one screen — on a phone a tile is its name, its role and Open in two rows (the longer description shows from
+   600 px wide); the bar's buttons are touch-sized. Tablets and desktops are untouched. */
+@media (max-width: 599px), (max-height: 520px) and (max-width: 1000px) {
+  .studio-tiles { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+  .studio-tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "head foot" "role foot"; align-items: center; gap: 0 0.75rem; padding: 0.55rem 0.75rem; }
+  .studio-tile-head { grid-area: head; min-width: 0; }
+  .studio-tile-name { font-size: var(--fs-base); }
+  .studio-tile-ver { font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .studio-tile-role { grid-area: role; margin: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .studio-tile-short { display: none; }
+  .studio-tile-foot { grid-area: foot; }
+  .studio-tile-foot .studio-btn { min-height: 2.75rem; }
+  .studio-bar-btn { min-width: 2.75rem; min-height: 2.75rem; justify-content: center; }
+  .studio-card { padding: 0.75rem; }
+  .studio-win { flex-wrap: wrap; }
+  dialog { max-width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); overflow: auto; }
+}
+@media (max-height: 520px) and (max-width: 1000px) and (orientation: landscape) {
+  .studio-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

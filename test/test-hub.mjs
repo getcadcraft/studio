@@ -115,6 +115,15 @@ section('Cloud client and the save queue (C.7, C.8)');
   ok(m.user.name === 'Ana' && m.workspace.name === 'Studio Nord' && m.workspace.open && m.workspace.used === '0.5 TB' && m.workspace.fraction === 0.5, 'card: the first workspace with cloud open, storage used/quota from the server\'s words');
   ok(Q.cardModel(st, { workspace: '11111111-1111-4111-8111-111111111111' }).workspace.open === false && m.workspaces.length === 2, 'card: a chosen workspace; every workspace listed');
   ok(Q.cardModel(null) === null && Q.cardModel({}) === null, 'card: nothing without a user');
+  {
+    // SI.6: a team's page slug from /api/v1/me when sync/status has none; never an unsafe one; a personal workspace has none.
+    const nord = st.workspaces.find((w) => w.name === 'Studio Nord');
+    const bare = { ...st, workspaces: st.workspaces.map((w) => ({ ...w, slug: undefined })) };
+    const me = { organizations: [{ uuid: nord.uuid, kind: nord.kind, slug: 'studio-nord' }] };
+    ok(Q.cardModel(bare, { workspace: nord.uuid, me }).workspace.slug === 'studio-nord', 'card: the team slug from /api/v1/me (sync/status has none)');
+    ok(Q.cardModel(bare, { workspace: nord.uuid }).workspace.slug === null, 'card: no /me → no slug (links fall back to /account)');
+    ok(Q.cardModel(bare, { workspace: nord.uuid, me: { organizations: [{ uuid: nord.uuid, slug: '../admin' }] } }).workspace.slug === null, 'card: a slug that isn\'t [a-z0-9-] is ignored');
+  }
   ok((await client.drawings('22222222-2222-4222-8222-222222222222')).drawings[0].name === 'Plan', 'drawings of a workspace');
   let bad = null; try { await client.drawings('../me'); } catch (e) { bad = e.code; }
   ok(bad === 'invalid', 'a workspace id that is not a UUID never reaches the server');
@@ -184,16 +193,91 @@ else {
   ok(/MAX_AGE_MS = 10 \* 60 \* 1000/.test(hub) && /MAX_AGE_MS = 10 \* 60 \* 1000/.test(app), 'same expiry (10 minutes)');
 }
 
+section('News from getcadcraft.com (SI.5)');
+{
+  const N = await import(path.join(STUDIO, 'hub/news.js'));
+  ok(N.newer('0.5', '0.4.1') && N.newer('0.4.1', '0.4') && !N.newer('0.4', '0.4.0') && !N.newer('0.4', '0.5') && !N.newer('0.5', 'dev') && !N.newer('junk', '0.1'), 'newer(): x.y[.z], a dev build is never compared');
+  const items = N.cleanItems([
+    { kind: 'news', title: 'CadCraft 0.5', summary: 'Live\u0000 sessions', app: null, published_at: '2026-10-20T10:00:00Z', url: 'https://getcadcraft.com/news/cadcraft-0-5' },
+    { kind: 'tutorial', title: 'Share live', summary: 'x'.repeat(900), app: 'cadcraft', published_at: '2026-10-21T10:00:00Z', url: 'https://getcadcraft.com/tutorials/cadcraft/live' },
+    { kind: 'news', title: 'Evil', published_at: '2026-10-22T00:00:00Z', url: 'javascript:alert(1)' },
+    { kind: 'news', title: 'Elsewhere', published_at: '2026-10-22T00:00:00Z', url: 'https://evil.example/news' },
+    { kind: 'news', title: '', published_at: '2026-10-22T00:00:00Z', url: 'https://getcadcraft.com/news/x' },
+    { kind: 'news', title: 'No date', url: 'https://getcadcraft.com/news/y' }, null, 'junk',
+    { kind: 'odd', title: 'Odd app', app: 'ninthcraft', published_at: '2026-10-01T00:00:00Z', url: 'https://getcadcraft.com/news/z' },
+  ]);
+  ok(items.map((i) => i.title).join('|') === 'Share live|CadCraft 0.5|Odd app', 'only site links with a title and a date, newest first');
+  ok(items[0].kind === 'tutorial' && items[0].app === 'cadcraft' && items[0].summary.length === 400 && items[1].summary === 'Live sessions' && items[2].kind === 'news' && items[2].app === null, 'kinds, apps, summaries cleaned and capped');
+  ok(N.cleanLatest({ downloads: { version: '0.4', url: 'https://getcadcraft.com/download', studio: { version: '0.4.1' } } }).version === '0.4.1' && N.cleanLatest({ downloads: { version: '0.5' } }).url === 'https://getcadcraft.com/download' && N.cleanLatest({}) === null && N.cleanLatest({ downloads: { version: '<b>' } }) === null, 'the newest release from the catalog (Studio\'s first)');
+  const mem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  let now = Date.parse('2026-10-22T12:00:00Z'), calls = [], down = false;
+  const fetch = async (url, o) => {
+    calls.push([url, o && o.credentials]);
+    if (down) throw new TypeError('Failed to fetch');
+    const body = url.includes('/news') ? { data: { items: [{ kind: 'news', title: 'CadCraft 0.5', summary: 's', published_at: '2026-10-20T10:00:00Z', url: 'https://getcadcraft.com/news/cadcraft-0-5' }] } } : { data: { downloads: { version: '0.5', url: 'https://getcadcraft.com/download' } } };
+    return { ok: true, status: 200, json: async () => body };
+  };
+  const st = mem();
+  const f = N.newsFeed({ fetch, storage: st, now: () => now });
+  ok(f.cached().items.length === 0 && f.cached().at === 0, 'nothing kept before the first fetch');
+  const a = await f.load();
+  ok(a.items.length === 1 && a.latest.version === '0.5' && !a.offline && calls.length === 2, 'the first open asks the site: news + catalog');
+  ok(calls.every(([u, cr]) => u.startsWith('https://getcadcraft.com/api/v1/') && cr === 'omit') && !calls.some(([u]) => /app=|since=|name|email/.test(u)), 'anonymous: no cookies, nothing about the person in the request');
+  now += 3600000;
+  await f.load();
+  ok(calls.length === 2, 'within a day: from the kept copy, no request');
+  now += N.DAY;
+  down = true;
+  const b = await f.load();
+  ok(calls.length === 4 && b.offline && b.items.length === 1 && b.items[0].title === 'CadCraft 0.5', 'a day later offline: the kept copy, marked offline');
+  ok(N.newsFeed({ fetch, storage: st, now: () => now }).cached().items[0].url === 'https://getcadcraft.com/news/cadcraft-0-5', 'kept across restarts');
+  down = false;
+  await f.load({ force: true });
+  ok(calls.length === 6, 'force asks again');
+  f.forget();
+  ok(f.cached().items.length === 0, 'turning news off forgets the copy');
+  // Dismissing What's new (owner, 2026-10-15): remembered by what was newest, back only when something is newer.
+  {
+    const ds = mem();
+    let t0 = Date.parse('2026-10-22T12:00:00Z');
+    const d = N.newsDismissal({ storage: ds, now: () => t0 });
+    const seen = { items: [{ date: Date.parse('2026-10-20T10:00:00Z') }], latest: { version: '0.5' } };
+    ok(!d.hidden(seen, 'b1') && d.get() === null, 'not dismissed: shown');
+    d.dismiss(seen, 'b1');
+    ok(d.hidden(seen, 'b1') && d.get().version === '0.5' && d.get().at === t0, 'dismissed: hidden, remembered with when and the newest release');
+    ok(N.newsDismissal({ storage: ds }).hidden(seen, 'b1'), 'still hidden after a restart');
+    ok(d.hidden({ items: [{ date: Date.parse('2026-10-21T10:00:00Z') }], latest: { version: '0.5' } }, 'b1'), 'a post published before the dismissal does not bring it back (even one not seen yet)');
+    ok(!d.hidden({ items: [...seen.items, { date: t0 + 60000 }], latest: { version: '0.5' } }, 'b1'), 'a post published after it: back');
+    ok(!d.hidden({ items: seen.items, latest: { version: '0.5.1' } }, 'b1') && d.hidden({ items: seen.items, latest: { version: '0.4' } }, 'b1'), 'a newer release: back (an older one is not newer)');
+    ok(!d.hidden(seen, 'b2'), 'another build (new release notes): back');
+    t0 = Date.parse('2026-10-22T12:00:00Z');
+    const ahead = { items: [{ date: t0 + 3 * 86400000 }], latest: null };
+    d.dismiss(ahead, 'b1');
+    ok(d.hidden(ahead, 'b1') && !d.hidden({ items: [{ date: t0 + 4 * 86400000 }], latest: null }, 'b1'), 'a post dated ahead of this computer\'s clock: dismissing still holds; a later one brings it back');
+    d.dismiss(seen, 'b1');
+    ok(d.hidden({ items: [], latest: null }, 'b1'), 'news off or offline with nothing kept: stays away');
+    ds.setItem('cadcraft.studio.news.dismissed', '{"at":"soon"}');
+    ok(!d.hidden(seen, 'b1') && d.get() === null, 'a damaged mark counts as not dismissed');
+    d.dismiss(seen, 'b1'); d.clear();
+    ok(!d.hidden(seen, 'b1') && d.get() === null, 'clear(): shown again');
+  }
+  const hubSrc = fs.readFileSync(path.join(STUDIO, 'hub/hub.js'), 'utf8');
+  ok(!/innerHTML|insertAdjacentHTML|outerHTML/.test(hubSrc), 'the hub never builds HTML from strings (news text goes in through el())');
+}
+
 section('Language file');
 {
   const en = JSON.parse(fs.readFileSync(path.join(STUDIO, 'hub/lang/en.json'), 'utf8'));
-  const src = ['hub.js', 'index.html'].map((f) => fs.readFileSync(path.join(STUDIO, 'hub', f), 'utf8')).join('\n');
-  const used = new Set([...src.matchAll(/\bt\('([a-z0-9.]+)'[,)]/g), ...src.matchAll(/\? '([a-z0-9]+\.[a-z0-9.]+)' : '([a-z0-9.]+)'/g), ...src.matchAll(/data-t(?:-title|-label)?="([a-z0-9.]+)"/g)].flatMap((m) => m.slice(1).filter(Boolean)));
-  for (const k of ['open', 'start', 'recent', 'windows', 'account', 'assistants', 'offline']) { used.add(`help.${k}.title`); used.add(`help.${k}.body`); }
+  // window.js (packed into every app page) looks its window.* words up with T().
+  const src = ['hub.js', 'index.html', 'window.js'].map((f) => fs.readFileSync(path.join(STUDIO, 'hub', f), 'utf8')).join('\n');
+  // Studio Live's words (hub/live/*.js, window.live.* and live.join.*) are checked by test-live.mjs.
+  const liveKey = (k) => k.startsWith('window.live.') || k.startsWith('live.join.');
+  const used = new Set([...src.matchAll(/\b[tT]\('([a-z0-9.]+)'[,)]/g), ...src.matchAll(/\? '([a-z0-9]+\.[a-z0-9.]+)' : '([a-z0-9.]+)'/g), ...src.matchAll(/data-t(?:-title|-label)?="([a-z0-9.]+)"/g)].flatMap((m) => m.slice(1).filter(Boolean)));
+  for (const k of ['open', 'start', 'recent', 'windows', 'live', 'account', 'assistants', 'offline']) { used.add(`help.${k}.title`); used.add(`help.${k}.body`); }
   for (const k of ['edition.browser', 'edition.desktop', 'noscript', 'studio.short', 'window.hub', 'window.hub.title']) used.add(k);
-  const missing = [...used].filter((k) => !(k in en));
+  const missing = [...used].filter((k) => !liveKey(k) && !(k in en));
   ok(!missing.length, 'every key the hub uses exists' + (missing.length ? ': ' + missing.join(', ') : ''));
-  const unused = Object.keys(en).filter((k) => !k.startsWith('@') && !used.has(k));
+  const unused = Object.keys(en).filter((k) => !k.startsWith('@') && !used.has(k) && !liveKey(k));
   ok(!unused.length, 'no unused keys' + (unused.length ? ': ' + unused.join(', ') : ''));
   const text = Object.entries(en).filter(([k]) => !k.startsWith('@')).map(([, v]) => (typeof v === 'string' ? v : Object.values(v).join(' '))).join('\n');
   ok(!/\bcrafts\b/i.test(text) && !/→/.test(text) && !/\bnine\b/i.test(text), 'copy rules: never "crafts", no arrows, never "nine"');
@@ -205,7 +289,7 @@ section('Language file');
 
 section('SPDX');
 {
-  const files = ['hub', 'pack', 'test'].flatMap((d) => fs.readdirSync(path.join(STUDIO, d)).filter((f) => /\.(m?js|css|php|html)$/.test(f)).map((f) => path.join(d, f)));
+  const files = ['hub', 'hub/live', 'pack', 'test'].flatMap((d) => fs.readdirSync(path.join(STUDIO, d)).filter((f) => /\.(m?js|css|php|html)$/.test(f)).map((f) => path.join(d, f)));
   const missing = files.filter((f) => !/SPDX-License-Identifier: Apache-2\.0/.test(fs.readFileSync(path.join(STUDIO, f), 'utf8').slice(0, 400)));
   ok(!missing.length, `every source file carries the Apache-2.0 SPDX line (${files.length})` + (missing.length ? ': ' + missing.join(', ') : ''));
 }
