@@ -296,3 +296,6 @@ html.is-tablet .studio-name { white-space: nowrap; }
 @media (max-height: 520px) and (max-width: 1000px) and (orientation: landscape) {
   .studio-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Interface size (0.6 DF.28): Settings › Interface size scales every rem of the hub (index.html sets it before the first paint). */
+html.studio-ui-sized { font-size: calc(clamp(100%, 0.75rem + 0.2083vw, 125%) * var(--studio-ui, 1)); }

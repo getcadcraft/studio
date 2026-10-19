@@ -239,8 +239,56 @@ try {
   await B.evaluate(() => { const d = window.cadcraft.doc; d.change('CIRCLE', () => d.add({ type: 'circle', layer: '0', cx: 5, cy: 5, r: 2 })); });
   await until(A, () => [...window.cadcraft.doc.model.values()].some((e) => e.type === 'circle' && e.r === 2), null, 'Ben\'s circle at the host');
   ok(await A.evaluate(() => [...window.cadcraft.doc.model.values()].some((e) => e.type === 'circle' && e.r === 2)), 'Ben\'s edit reaches the host');
+
+  section('Recent edits: who changed what last (0.6 DC.23)');
+  await until(A, () => [...document.querySelectorAll('[data-live-edit]')].some((x) => x.textContent.includes('Ben') && x.textContent.includes('CIRCLE')), null, 'the host\'s edit log');
+  const hostLog = await A.textContent('[data-live-edits]');
+  ok(/Ben\s*CIRCLE\s*Just now/.test(hostLog), 'the host sees Ben\'s circle in Recent edits, just now: ' + hostLog.slice(0, 80));
+  ok(/never saved in the file or sent anywhere/.test(await A.textContent('[data-live-edits-privacy]')), 'the privacy line: memory only, gone when the session ends');
+  await until(B, () => [...document.querySelectorAll('[data-live-edit]')].some((x) => x.textContent.includes('You')), null, 'the joiner\'s edit log');
+  ok(/You\s*CIRCLE/.test(await B.textContent('[data-live-edits]')), 'Ben sees it as his own ("You")');
+  ok(!/before you joined/.test(await B.textContent('[data-live-edits-sec]')), 'the host\'s line was in the file before sharing, not a session edit: nothing missing to warn about');
+  await A.evaluate(() => { const app = window.cadcraft; const c = [...app.doc.model.values()].find((e) => e.type === 'circle' && e.r === 2); app.host.setSelection(new Set([c.id])); });
+  await until(A, () => document.querySelector('[data-live-lastedit]'), null, 'the selection line');
+  ok(/Selected: last changed by Ben, just now \(CIRCLE\)/.test(await A.textContent('[data-live-lastedit]')), 'with the circle selected: "last changed by Ben"');
+  await A.click('[data-live-edits-sel]');
+  await until(A, () => document.querySelectorAll('[data-live-edit]').length === 1, null, 'only the selection');
+  ok((await A.textContent('[data-live-edits]')).includes('CIRCLE'), 'Only what is selected: just the circle\'s edits');
+  await shot(A, '04a-host-recent-edits');
+  await A.click('[data-live-edits-sel]');
+  await A.evaluate(() => window.cadcraft.host.setSelection(new Set()));
   await shot(A, '04-host-people');
   await shot(B, '05-joiner-live');
+
+  section('The people limit is soft (0.6 DEC-2-5)');
+  // The limit itself goes to the real server and back; a 21st knock is played into the host's client (20 real joiners
+  // would make this test slow; the server side is covered by tools/live-test).
+  await until(A, () => document.querySelector('[data-live-limit="20"]'), null, 'the usual size line');
+  ok(/Usual size: up to 20 people/.test(await A.textContent('[data-live-limit]')), 'the people list says the usual size');
+  await A.click('[data-live-limit-more]');
+  const warn = await A.textContent('[data-live-limit-warning]');
+  ok(/Allow more than 20 people\?/.test(warn) && /Every change goes to everyone/.test(warn) && /cable instead of Wi-Fi/.test(warn), 'Allow more people…: the cost and what helps, in plain words');
+  await A.click('[data-live-limit-cancel]');
+  ok(!(await A.$('[data-live-limit-warning]')), 'Cancel: nothing changes');
+  const knock21 = () => window.cadcraftStudioLive.client.message({ t: 'join', b: { c: 9001, name: 'Zed', device: 'phone', via: 'lan', over: { limit: 20, people: 21 } } });
+  await A.evaluate(knock21);
+  await until(A, () => document.querySelector('[data-live-card-over]'), null, 'the over card');
+  ok(/Letting Zed in makes 21 people in the session, more than the usual 20/.test(await A.textContent('[data-live-limit-warning]')), 'a knock over the limit: the warning names the person and the count');
+  ok(!(await A.$('[data-live-card-over] [data-live-approve]')) && /Over the usual 20 people/.test(await A.textContent('[data-live-card-over]')), 'the card itself has only Deny until the host allows more');
+  await shot(A, '05a-limit-warning');
+  await A.click('[data-live-limit-keep]');
+  ok(!(await A.$('[data-live-card]')), 'Keep it at 20: the card goes (the joiner is told the host keeps the session small)');
+  await A.evaluate(knock21);
+  await until(A, () => document.querySelector('[data-live-limit-allow]'), null, 'the warning again');
+  await A.click('[data-live-limit-allow]');
+  await until(A, () => window.cadcraftStudioLive.client.limit && window.cadcraftStudioLive.client.limit.max === 0, null, 'the server took the new limit');
+  await until(A, () => document.querySelector('[data-live-limit="0"]'), null, 'the raised line');
+  ok(/lets in more than 20 people/.test(await A.textContent('[data-live-limit]')), 'Allow anyway: the session lets in more, and says what helps if it slows down');
+  ok(!!(await A.$('[data-live-card] [data-live-approve="editor"]')) && !(await A.$('[data-live-card-over]')), 'the waiting card is an ordinary one now (Edit, View only, Deny)');
+  await A.click('[data-live-card] [data-live-deny]');
+  await A.click('[data-live-limit-back]');
+  await until(A, () => document.querySelector('[data-live-limit="20"]'), null, 'back to 20');
+  ok(await A.evaluate(() => window.cadcraftStudioLive.client.limit.max === 20), 'Back to 20: the session is at the usual size again');
 
   section('An assistant on the bus (LV.18)');
   const hostCtl = `(async () => { const src = document.querySelector('script[type="module"][src*="/assets/apps/"]').src; return (await import(new URL('host.js', src).href)).getHost({ app: 'cadcraft' }).control; })()`;

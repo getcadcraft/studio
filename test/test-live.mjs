@@ -155,6 +155,9 @@ section('What the panels show');
   const acard = V.joinCard({ c: 6, name: 'helper', via: 'lan', assistant: { of: 2, of_name: ' Ben‮ ' } });
   ok(acard.assistant && acard.assistant.of === 2 && acard.assistant.ofName === 'Ben', 'an assistant\'s approve card: whose, its person\'s name cleaned');
   ok(V.joinCard({ c: 6, assistant: { of: 0 } }).assistant === null && V.joinCard({ c: 6, assistant: 'x' }).assistant === null, 'no person, no assistant card');
+  const ocard = V.joinCard({ c: 12, name: 'Zed', over: { limit: 20, people: 21 } });
+  ok(ocard.over && ocard.over.limit === 20 && ocard.over.people === 21, 'DEC-2-5: a knock over the people limit carries {limit, people}');
+  ok(V.joinCard({ c: 12 }).over === null && V.joinCard({ c: 12, over: { limit: 0 } }).over === null && V.joinCard({ c: 12, over: 'x' }).over === null, 'no limit, no over');
   ok(!V.canHandOver(ar.find((r) => r.c === 6)), 'the session is never handed to an assistant');
   ok(V.statusLine('live', { role: 'editor', people: 3 }).key === 'window.live.status.live' && V.statusLine('live', { role: 'viewer' }).key === 'window.live.status.viewing' && V.statusLine('waiting').key === 'window.live.status.waiting', 'status lines');
   ok(V.endLine({ status: 'failed', reason: 'wrong-code' }).key === 'window.live.end.wrongcode' && V.endLine({ status: 'failed', reason: 'room-closed' }).key === 'window.live.end.roomclosed'
@@ -174,6 +177,26 @@ section('Handing over (LV.17)');
   const row = (o) => Object.assign({ c: 4, name: 'Ben', role: 'editor', state: 'in', self: false, host: false }, o);
   ok(V.canHandOver(row()) && !V.canHandOver(row({ role: 'viewer' })) && !V.canHandOver(row({ self: true })) && !V.canHandOver(row({ state: 'gone' })) && !V.canHandOver(row({ host: true, role: 'host' })), 'only to an editor who is here, never yourself');
   ok(V.endLine({ status: 'lost', reason: 'moved', host: 'Ben', file: 'a.dwg' }).key === 'window.live.end.moved' && V.endLine({ status: 'lost', host: 'Ben' }).key === 'window.live.end.lost', 'moved out of reach has its own words');
+}
+
+section('The edit log (0.6 DC.23)');
+{
+  const now = 10 * 3600000;
+  ok(V.ageLine(null, now).key === 'window.live.edits.earlier' && V.ageLine(now - 10000, now).key === 'window.live.edits.now', 'earlier (before this window was there), just now');
+  const m = V.ageLine(now - 5 * 60000, now), h = V.ageLine(now - 2 * 3600000, now);
+  ok(m.key === 'window.live.edits.min' && m.vars.n === 5 && h.key === 'window.live.edits.hour' && h.vars.n === 2 && V.ageLine(now - 50000, now).vars.n === 1, 'minutes, hours');
+  const peers = new Map([[2, { c: 2, name: 'Ana\u202e' }], [3, { c: 3, name: 'Assistant', of: 2 }], [4, { c: 4, name: 'Bot', of: 1 }]]);
+  const log = [
+    { q: 4, c: 4, name: 'Bot', of: 1, label: 'Erase', keys: ['e:1'], more: 0, at: now },
+    { q: 3, c: 3, name: 'Assistant', of: 2, label: 'Move', keys: ['e:1', 'e:2'], more: 3, at: now - 120000 },
+    { q: 2, c: 0, gap: true, keys: [] },
+    { q: 1, c: 1, name: 'Host', of: 0, label: '', keys: ['e:1'], more: 0, at: null },
+  ];
+  const client = { c: 1, peers, editLog: ({ limit }) => log.slice(0, limit) };
+  const rows = V.editRows(client, { limit: 10, now });
+  ok(rows.length === 4 && rows[0].assistant && rows[0].assistant.self && rows[1].assistant.ofName === 'Ana' && !rows[1].self, "assistants: yours, or someone's (named by their person, text cleaned)");
+  ok(rows[1].count === 5 && rows[1].age.vars.n === 2 && rows[2].gap && rows[3].self && rows[3].label === '' && rows[3].age.key === 'window.live.edits.earlier', 'how many things, how long ago, the gap, your own unnamed edit');
+  ok(V.editRows(client, { limit: 1, now }).length === 1 && V.editRows({}, {}).length === 0, 'the limit; a client without a log shows none');
 }
 
 section('Live words in every hub language');
@@ -197,8 +220,10 @@ section('Live words in every hub language');
     if (I18N) {
       const fills = live.filter((k) => k in l && I18N.fillsOf(l[k]).join() !== I18N.fillsOf(en[k]).join());
       ok(!fills.length, `${l['@locale']}: the same {fills} as English` + (fills.length ? ': ' + fills.join(', ') : ''));
-      const forms = live.filter((k) => typeof en[k] === 'object' && (typeof l[k] !== 'object' || !l[k].one || !l[k].other));
-      ok(!forms.length, `${l['@locale']}: plurals have one and other` + (forms.length ? ': ' + forms.join(', ') : ''));
+      // the forms the locale's plural rules use (Indonesian: only "other"), "other" always (closing_PART_2)
+      const cats = new Intl.PluralRules(l['@locale']).resolvedOptions().pluralCategories.filter((c) => c === 'one' || c === 'other');
+      const forms = live.filter((k) => typeof en[k] === 'object' && (typeof l[k] !== 'object' || !l[k].other || cats.some((c) => !l[k][c])));
+      ok(!forms.length, `${l['@locale']}: plurals have their forms (${cats.join(', ')})` + (forms.length ? ': ' + forms.join(', ') : ''));
     }
   }
   const text = live.map((k) => (typeof en[k] === 'string' ? en[k] : Object.values(en[k]).join(' '))).join('\n');

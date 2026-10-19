@@ -14,6 +14,10 @@
  *   relayLine(b)             → { key, vars, linkDead }   the host's relay socket (`relay` notices, LIVE-PROTOCOL § 4.5)
  *   initials(name), colorIndex(c)   the person's initials and one of eight layer colours (no picture: guests, SI.8)
  *   LIFETIMES                → the invite link's lifetimes (spec § 9): 1h, 8h (default, decision 13.7 recommended), end
+ *   editRows(client, opts)   → the edit log's rows (0.6 DC.23): [{ q, c, self, name, assistant: null | { of, ofName, self },
+ *                              label, count, age: { key, vars }, gap }], newest first; opts { limit, keys, now }
+ *   editRow(client, entry, now) → one such row from a LiveClient.editLog() / lastEdit() entry
+ *   ageLine(at, now)         → { key, vars }   how long ago an edit was (null `at`: decided before this window was there)
  */
 
 export const ROLES = ['editor', 'viewer'];
@@ -46,7 +50,10 @@ export function joinCard(b) {
     assertion: typeof b.assertion === 'string' && b.assertion ? b.assertion : '', picture: b.picture instanceof Uint8Array ? b.picture : null,
     aud: typeof b.aud === 'string' ? b.aud : '',
     // LV.18: an assistant asking in — whose (its person's id and name).
-    assistant: b.assistant && Number(b.assistant.of) > 0 ? { of: Number(b.assistant.of), ofName: clean(b.assistant.of_name) } : null };
+    assistant: b.assistant && Number(b.assistant.of) > 0 ? { of: Number(b.assistant.of), ofName: clean(b.assistant.of_name) } : null,
+    // DEC-2-5: letting this person in goes over the session's people limit ({limit, people} = with them), so the host is
+    // shown what that costs before choosing.
+    over: b.over && Number(b.over.limit) > 0 ? { limit: Number(b.over.limit), people: Number(b.over.people) || 0 } : null };
 }
 
 /** status: LiveClient.status; info: { role, people, reason } */
@@ -105,3 +112,31 @@ export function initials(name) {
 }
 export const colorIndex = (c) => ((Number(c) || 0) % LAYERS.length + LAYERS.length) % LAYERS.length;
 export const layerFor = (c) => LAYERS[colorIndex(c)];
+
+/** How long ago (0.6 DC.23). `at` is this window's clock when the edit arrived; null = before it joined or while away. */
+export function ageLine(at, now) {
+  if (typeof at !== 'number') return { key: 'window.live.edits.earlier', vars: {} };
+  const s = Math.max(0, (now - at) / 1000);
+  if (s < 45) return { key: 'window.live.edits.now', vars: {} };
+  if (s < 3600) return { key: 'window.live.edits.min', vars: { n: Math.max(1, Math.round(s / 60)) } };
+  return { key: 'window.live.edits.hour', vars: { n: Math.round(s / 3600) } };
+}
+
+/** The edit log as the panel shows it (0.6 DC.23): who (you, a person, or someone's assistant), what (the app's own label,
+ *  as the author's window named it), how many things it changed, and when. Names and labels are text only. */
+export function editRows(client, { limit = 6, keys = null, now = Date.now() } = {}) {
+  if (!client || typeof client.editLog !== 'function') return [];
+  return client.editLog({ limit, keys }).map((e) => editRow(client, e, now));
+}
+
+/** One entry of LiveClient.editLog() as a row (editRows). */
+export function editRow(client, e, now = Date.now()) {
+  if (e.gap) return { q: e.q, c: 0, self: false, name: '', assistant: null, label: '', count: 0, age: ageLine(null, now), gap: true };
+  const self = e.c === client.c;
+  let assistant = null;
+  if (e.of) {
+    const p = client.peers.get(e.of);
+    assistant = { of: e.of, self: e.of === client.c, ofName: e.of === client.c ? '' : clean(p && p.name) };
+  }
+  return { q: e.q, c: e.c, self, name: clean(e.name), assistant, label: clean(e.label, 80), count: e.keys.length + (e.more || 0), age: ageLine(e.at, now), gap: false };
+}

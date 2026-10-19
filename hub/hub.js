@@ -865,10 +865,14 @@ function wireOffline() {
     state.textContent = n === jobs.length ? t('offline.ready', { when: whenText(Date.parse(st.map((x) => x.when).filter(Boolean).sort()[0])) })
       : n ? t('offline.some', { n: n - (st[0].saved ? 1 : 0), total: jobs.length - 1 }) : t('offline.body');
   };
-  // The button waits for the worker: a click before it is ready used to do nothing at all.
+  // The button waits for the worker: a click before it is ready used to do nothing at all. A worker saved on an earlier visit
+  // is used at once: register() checks sw.js on the network first, which can take long (or fail offline) though it is active.
   saveBtn.disabled = true;
-  navigator.serviceWorker.register('./sw.js', { scope: './' }).then(() => navigator.serviceWorker.ready).then((r) => { reg = r; saveBtn.disabled = false; return status(); })
-    .catch(() => { state.textContent = t('offline.unavailable'); saveBtn.disabled = true; });
+  const mine = new URL('./sw.js', location.href).href;
+  const use = (r) => { if (reg || !r || !r.active || r.active.scriptURL !== mine) return; reg = r; saveBtn.disabled = false; return status(); };
+  navigator.serviceWorker.getRegistration('./').then(use).catch(() => {});
+  navigator.serviceWorker.register('./sw.js', { scope: './' }).then(() => navigator.serviceWorker.ready).then(use)
+    .catch(() => { if (reg) return; state.textContent = t('offline.unavailable'); saveBtn.disabled = true; });
   saveBtn.addEventListener('click', async () => {
     if (!reg) return;
     saveBtn.disabled = true;
@@ -924,6 +928,8 @@ function wireSettings() {
   news.addEventListener('change', () => { ls.set(LS.news, news.checked ? null : '0'); if (!news.checked) feed.forget(); renderSiteNews({ force: news.checked }); });
   dlg.querySelector('[data-set-forget]').addEventListener('click', () => { ls.set(LS.always, null); renderSettingsTypes(); say(t('settings.types.forgot')); });
   wireInputFamily(dlg);
+  wireLayoutReset(dlg);
+  wireUiSize(dlg);
   $('[data-open-settings]').addEventListener('click', () => dlg.showModal());
   dlg.querySelector('[data-close]').addEventListener('click', () => dlg.close());
   doc.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === ',') { e.preventDefault(); dlg.open ? dlg.close() : dlg.showModal(); } });
@@ -951,6 +957,42 @@ function wireInputFamily(dlg) {
     say(t(sel.value ? 'settings.input.on' : 'settings.input.off', { style: INPUT_NAMES[sel.value]() }));
   });
   window.addEventListener('storage', (e) => { if (e.key === INPUT_FAMILY_KEY) fill(); });   // an app chose "Use this style in every app"
+}
+
+// Reset the layout in every app (0.6 DF.8; the apps' side is the shell's assets/js/app-settings.js "Reset the layout"):
+// localStorage 'cc-layout-reset' {at}. App windows open now follow at once (the storage event); an app opened later resets
+// once when it starts. Builds before 0.6 don't read it.
+const LAYOUT_RESET_KEY = 'cc-layout-reset';
+function wireLayoutReset(dlg) {
+  const b = dlg.querySelector('[data-set-layout-reset]');
+  if (!b) return;
+  b.addEventListener('click', async () => {
+    if (!(await confirmBox(t('settings.layout.reset'), t('settings.layout.confirm'), t('settings.layout.go')))) return;
+    ls.set(LAYOUT_RESET_KEY, JSON.stringify({ at: Date.now() }));
+    say(t('settings.layout.done'));
+  });
+}
+
+// Interface size of the hub itself (0.6 DF.28): 80–140 %, localStorage 'cadcraft.studio.ui' (index.html applies it before the first
+// paint). Each app has its own (Settings › General › Interface size in the app).
+const UI_KEY = 'cadcraft.studio.ui';
+const UI_SIZES = [0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4];
+function applyUiSize(v) {
+  const root = doc.documentElement;
+  root.style.setProperty('--studio-ui', String(v));
+  root.classList.toggle('studio-ui-sized', v !== 1);
+}
+function wireUiSize(dlg) {
+  const sel = dlg.querySelector('[data-set-ui]');
+  if (!sel) return;
+  const cur = Number(ls.get(UI_KEY)) || 1;
+  sel.replaceChildren(...UI_SIZES.map((v) => el('option', { value: String(v), selected: v === cur }, t(v === 1 ? 'settings.ui.normal' : 'settings.ui.pct', { pct: Math.round(v * 100) }))));
+  sel.addEventListener('change', () => {
+    const v = Number(sel.value);
+    if (!UI_SIZES.includes(v)) return;
+    ls.set(UI_KEY, v === 1 ? null : String(v));
+    applyUiSize(v);
+  });
 }
 
 function wireHelp() {

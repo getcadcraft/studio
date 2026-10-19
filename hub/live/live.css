@@ -63,6 +63,9 @@
 .sl-qr { width: 8.5rem; height: 8.5rem; flex: 0 0 auto; border: var(--pen-1) solid var(--grid); }
 
 .sl-card { padding: .55rem .6rem; margin-bottom: .45rem; border: var(--pen-3) solid var(--action); background: var(--sheet); }
+.sl-card.is-over { border-color: var(--layer-ochre); }
+.sl-limit p { margin: 0 0 .35rem; }
+.sl-limit .sl-limit-h { font-weight: 700; }
 .sl-card-who { display: flex; gap: .55rem; align-items: center; }
 .sl-card-name { margin: 0; font-weight: 700; }
 .sl-avatar {
@@ -88,3 +91,11 @@ img.sl-avatar { object-fit: cover; }
 .sl-avatar-bot { background: var(--sheet); color: var(--ink); border: var(--pen-1) solid var(--line); }
 .sl-tick { color: var(--layer-blue); }
 .sl-verified { margin: .1rem 0; color: var(--layer-green); font-weight: 600; font-size: .85rem; }
+/* the edit log (0.6 DC.23) */
+.sl-edits { list-style: none; margin: .3rem 0 0; padding: 0; }
+.sl-edit { display: grid; grid-template-columns: auto 1fr; gap: 0 .5rem; padding: .25rem 0; border-bottom: var(--pen-1) solid var(--grid); }
+.sl-edit-who { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 10rem; }
+.sl-edit-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-edit-when { grid-column: 1 / -1; font-size: .8rem; }
+.sl-edit.is-gap { grid-template-columns: 1fr; }
+

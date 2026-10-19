@@ -18,7 +18,7 @@ studio/
     window.js           what every app window in Studio carries (the Studio button, the channel)
     handoff.js          hands a file to an app window without uploading it
     cloud.js            the account card's data and the queue for saves made while offline
-    lang/               the hub's words (en, es-MX); the product name lives only here
+    lang/               the hub's words (en, es-MX, id); the product name lives only here
   pack/                 the suite packer
     suite.mjs           eight browser editions → one folder, one origin, libraries stored once → out/studio-suite/v<build>/
     catalog.php         the lineup facts the hub shows, from the site's Catalog

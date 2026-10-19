@@ -16,10 +16,17 @@
  * - Joining: the hub opens this window with `?live-join=<id>` (the code, address or link waits in JoinStore); the panel
  *   shows connecting / waiting for the host / live / the end, and Leave. A window with a file open can also join from here
  *   (LV.8): someone who opened the host's own file then needs no snapshot.
+ * - People limit (0.6 DEC-2-5, soft): a knock above the session's limit (20 by default) shows what more people cost and
+ *   "Allow anyway" / "Keep it at 20"; "Allow more people…" in the people list does the same ahead of time. The choice is
+ *   the session's (the session server keeps it, a handoff carries it), never remembered for the next one.
  * - Assistants (LV.18): an assistant connected to this window (Studio's control channel, host.control) joins the session
  *   as its own client (host.live.assistant: role `assistant`, its own undo; the host approves it — the host's own at once)
  *   while it is connected; the window's edits made during its calls go on it. The people list shows it under its person,
  *   "Assistant (via Ana)"; the host's card asks "Ana's assistant…". Denied or removed: the assistant is disconnected here.
+ *
+ * - Edit log (0.6 DC.23): "Recent edits" — who changed what, newest first, from the commits this window applied
+ *   (LiveClient.editLog); with something selected in an app whose adapter names its selection (`selectionKeys()`), who
+ *   changed it last and "Only what is selected". Memory only, for this session; the panel says so.
  *
  * Words: the packer embeds `window.live.*` from hub/lang/<locale>.json (#studio-window-lang). Names and devices people
  * typed reach the page only as text. The code's secret part and a link's fragment are shown to the host only, never put
@@ -27,7 +34,7 @@
  */
 import { fill, choosePlural } from '../../assets/js/i18n.js';
 import { parseJoin, lanUrl, socketUrl, relayJoinUrl, urlHost, inviteLink, newLinkSecret, linkSecretBytes, expiresIn, JoinStore } from './invite.js';
-import { peopleRows, joinCard, statusLine, endLine, refuseKey, relayLine, initials, layerFor, canHandOver, LIFETIMES } from './view.js';
+import { peopleRows, joinCard, statusLine, endLine, refuseKey, relayLine, initials, layerFor, canHandOver, LIFETIMES, editRows, editRow } from './view.js';
 import { qrMatrix, qrSvgPath } from './qr.js';
 import { decodesAsImage } from '../avatar.js';
 
@@ -97,6 +104,10 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
     joinRec: null, endInfo: null, msg: '', msgKind: 'info',
     file: '', adapter: null,
     assistants: new Map(),                 // LV.18: control session id → its LiveClient (null: asking, or none to be had)
+    limitAsk: false,                       // DEC-2-5: the host chose "Allow more people…" and sees the cost first
+    relayMax: 0,                           // the invite link service's own joiner cap for our room (0 = none)
+    editsAll: false, editsSel: false,      // DC.23: the edit log shows more / only what is selected
+    lastEdits: '',                         // DC.23: what the edit log showed last (redrawn when it changes)
   };
   let timer = null;
   // The open file's name from the window title ("Plan.dwg — CadCraft"); a title without a file ("CadCraft dev") → "this file".
@@ -201,6 +212,12 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
       if (live && live.unadvertise) live.unadvertise(st.code.tag).catch(() => {});
       st.code = null;
       st.codeNote = T('window.live.code.gone.' + (['used', 'expired', 'stopped', 'wrong-tries'].includes(b.reason) ? b.reason : 'other'));
+      render();
+    });
+    c.on('limit', (l) => {
+      if (st.mode !== 'host') return;
+      st.limitAsk = false;
+      if (l && l.max === 0) announce(T('window.live.limit.allowed'));
       render();
     });
     c.on('join', (b) => {
@@ -347,6 +364,7 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
     if (!line) return;
     if (line.noNewLink !== undefined) st.noNewLink = !!line.noNewLink;
     if (b.state === 'ready' && b.license_ok === false) st.noNewLink = true;
+    if (b.state === 'ready') st.relayMax = Math.max(0, Number(b.max_clients) || 0);
     if (line.linkDead && st.link) { st.link = null; }
     st.linkMsg = T(line.key, line.vars); st.linkMsgKind = line.linkDead || st.noNewLink ? 'warn' : 'info';
     render();
@@ -463,6 +481,7 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
     c.on('warn', () => { st.msg = T('window.live.flood'); st.msgKind = 'warn'; render(); });
     c.on('saved', () => { if (st.mode === 'join') { st.msg = T('window.live.saved', { host: c.hostName() || T('window.live.noname') }); st.msgKind = 'info'; render(); } });
     c.on('locks', () => render());
+    c.on('applied', () => editsSoon());     // DC.23: the edit log follows the session (redrawn at most ~3 times a second)
     // LV.17 host handoff.
     c.on('handover', (b) => { st.handoverFrom = b && b.from; });
     c.on('handover-off', (b) => {
@@ -526,7 +545,7 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
     if (!timer) timer = win.setInterval(() => {
       if (panel.hidden) return;
       if (st.code) renderCode();
-      if (st.client && !st.client.final && presenceKey(st.client) !== st.lastPeoplePresence) render();
+      if (st.client && !st.client.final && (presenceKey(st.client) !== st.lastPeoplePresence || editsKey(st.client) !== st.lastEdits)) render();
     }, 1000);
     updateButton();
   }
@@ -689,11 +708,37 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
     return el('section', { class: 'sl-sec' }, kids);
   }
 
+  // ---- the people limit (DEC-2-5): soft; the host sees the cost and decides, for this session only
+  /** The session's limit while there is one ({max, default}); null when the host allowed more, or an older session server. */
+  const limited = (c) => (c && c.limit && c.limit.max > 0 ? c.limit : null);
+  /** What more people cost, what to expect and what helps, with the host's two choices. */
+  function limitWarning(c, { title, keep }) {
+    const l = limited(c);
+    return el('div', { class: 'sl-note is-warn sl-limit', role: 'group', 'aria-label': title, 'data-live-limit-warning': true },
+      el('p', { class: 'sl-limit-h' }, icon('exclamation-triangle'), ' ', title),
+      el('p', {}, T('window.live.limit.cost')),
+      el('p', {}, T('window.live.limit.todo')),
+      el('div', { class: 'sl-row' },
+        btn(T('window.live.limit.allow'), () => { c.setLimit(0); st.limitAsk = false; render(); }, '', { 'data-live-limit-allow': true }),
+        keep ? btn(T('window.live.limit.keep', { limit: l ? l.max : '' }), keep, 'sl-btn-line', { 'data-live-limit-keep': true }) : null,
+        !keep ? btn(T('window.live.cancel'), () => { st.limitAsk = false; render(); }, 'sl-btn-line', { 'data-live-limit-cancel': true }) : null));
+  }
+  /** Keep it at the limit: everyone waiting over it is told the host is keeping the session small. */
+  function keepSmall() {
+    const c = st.client;
+    for (const k of [...st.cards.values()]) if (k.over && !k.assistant) { c.deny(k.c, 'full'); st.cards.delete(k.c); }
+    render(); updateButton();
+  }
+
   function sectionCards() {
     if (!st.cards.size) return null;
     const c = st.client;
+    const l = limited(c);
+    const over = l ? [...st.cards.values()].filter((k) => k.over && !k.assistant) : [];
+    const most = over.reduce((m, k) => (k.over.people > m.people ? { people: k.over.people, name: k.name } : m), { people: 0, name: '' });
     return el('section', { class: 'sl-sec sl-cards', 'aria-label': T('window.live.waiting.title') },
-      ...[...st.cards.values()].map((k) => (k.assistant ? assistantCard(c, k) : el('div', { class: 'sl-card', 'data-live-card': k.c },
+      over.length ? limitWarning(c, { title: T('window.live.limit.over.title', { name: most.name || T('window.live.noname'), n: most.people, limit: l.max }), keep: keepSmall }) : null,
+      ...[...st.cards.values()].map((k) => (k.assistant ? assistantCard(c, k) : l && k.over ? overCard(c, k) : el('div', { class: 'sl-card', 'data-live-card': k.c },
         el('div', { class: 'sl-card-who' }, avatar(k.c, k.name),
           el('div', {},
             el('p', { class: 'sl-card-name' }, T('window.live.knock.card', { name: k.name || T('window.live.noname'), device: k.device || T('window.live.nodevice') })),
@@ -704,6 +749,33 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
           btn(T('window.live.approve.view'), () => { c.approve(k.c, 'viewer'); st.cards.delete(k.c); render(); updateButton(); }, 'sl-btn-line', { 'data-live-approve': 'viewer' }),
           btn(T('window.live.approve.deny'), () => { c.deny(k.c); st.cards.delete(k.c); render(); updateButton(); }, 'sl-btn-line', { 'data-live-deny': true }))))));
   }
+  /** DEC-2-5: someone knocking over the limit, while the host hasn't allowed more: who it is, and Deny (the choice to let
+   *  more in is the warning above the cards). */
+  function overCard(c, k) {
+    return el('div', { class: 'sl-card is-over', 'data-live-card': k.c, 'data-live-card-over': true },
+      el('div', { class: 'sl-card-who' }, avatar(k.c, k.name),
+        el('div', {},
+          el('p', { class: 'sl-card-name' }, T('window.live.knock.card', { name: k.name || T('window.live.noname'), device: k.device || T('window.live.nodevice') })),
+          el('p', { class: 'sl-muted' }, T('window.live.limit.over.card', { limit: k.over.limit })),
+          el('p', { class: 'sl-muted' }, T(k.via === 'relay' ? 'window.live.via.relay' : 'window.live.via.lan')))),
+      el('div', { class: 'sl-row' },
+        btn(T('window.live.approve.deny'), () => { c.deny(k.c, 'full'); st.cards.delete(k.c); render(); updateButton(); }, 'sl-btn-line', { 'data-live-deny': true })));
+  }
+  /** The people list's line about the limit (host only): the usual size and "Allow more people…", or that more are allowed. */
+  function limitLine(c) {
+    if (st.mode !== 'host' || !c.limit) return null;
+    const l = limited(c);
+    const kids = [];
+    if (l && st.limitAsk) kids.push(limitWarning(c, { title: T('window.live.limit.ask.title', { limit: l.max }) }));
+    else if (l) kids.push(el('p', { class: 'sl-hint', 'data-live-limit': l.max }, T('window.live.limit.usual', { limit: l.max }), ' ',
+      btn(T('window.live.limit.more'), () => { st.limitAsk = true; render(); }, 'sl-btn-line sl-btn-sm', { 'data-live-limit-more': true })));
+    else kids.push(el('p', { class: 'sl-hint', 'data-live-limit': 0 }, T('window.live.limit.raised', { limit: c.limit.default }), ' ',
+      c.limit.default > 0 ? btn(T('window.live.limit.back', { limit: c.limit.default }), () => c.setLimit(c.limit.default), 'sl-btn-line sl-btn-sm', { 'data-live-limit-back': true }) : null));
+    // The invite link service has its own cap for our room: say so when this session allows more than it lets through.
+    if (st.link && st.relayMax > 0 && (!l || l.max > st.relayMax)) kids.push(el('p', { class: 'sl-note is-warn', 'data-live-limit-relay': st.relayMax }, T('window.live.limit.relay', { n: st.relayMax })));
+    return kids;
+  }
+
   /** LV.18: someone's assistant asks to work in the session (approved separately from its person). */
   function assistantCard(c, k) {
     const who = k.assistant.ofName || T('window.live.noname');
@@ -725,6 +797,7 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
     const people = rows.filter((r) => !r.of);
     return el('section', { class: 'sl-sec' },
       el('h3', { class: 'sl-h3' }, icon('people'), ' ', T('window.live.people.title', { n: people.length })),
+      limitLine(c),
       el('ul', { class: 'sl-people', 'data-live-people': true }, ...rows.map((r) => (r.of ? helperRow(c, r, rows) : el('li', { class: 'sl-person' + (r.state === 'gone' ? ' is-gone' : ''), 'data-live-person': r.c },
         avatar(r.c, r.name),
         el('span', { class: 'sl-person-name' }, r.name || T('window.live.noname'), ' ', tick(r.c), r.self ? el('span', { class: 'sl-muted' }, ' ' + T('window.live.people.you')) : null),
@@ -826,6 +899,59 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
       el('span', { class: 'sl-muted sl-person-role' }, T('window.live.role.assistant')));
   }
 
+  // ---- the edit log (0.6 DC.23): who changed what, for this session only
+  let editsTimer = null;
+  function editsSoon() {
+    if (panel.hidden || editsTimer) return;
+    editsTimer = win.setTimeout(() => { editsTimer = null; if (!panel.hidden && st.client && editsKey(st.client) !== st.lastEdits) render(); }, 300);
+  }
+  /** The open app's selection as session keys, when its adapter can name them (CadCraft, MarkupCraft); else null. */
+  function selectionKeys() {
+    const a = st.adapter;
+    if (!a || typeof a.selectionKeys !== 'function') return null;
+    try { const k = a.selectionKeys(); return Array.isArray(k) ? k : null; } catch { return null; }
+  }
+  const editsKey = (c) => [c.edits ? c.edits.length : 0, (selectionKeys() || []).join(','), st.editsAll, st.editsSel, Math.floor(Date.now() / 30000)].join('|');
+  const cap = (x) => (x ? x.charAt(0).toLocaleUpperCase(locale) + x.slice(1) : x);   // ages start a row, or sit mid-sentence
+  function editWho(r) {
+    if (r.assistant) return r.assistant.self ? T('window.live.assistant.you') : T('window.live.assistant.via', { name: r.assistant.ofName || T('window.live.noname') });
+    return r.self ? T('window.live.edits.you') : r.name || T('window.live.noname');
+  }
+  function sectionEdits(c) {
+    if (typeof c.editLog !== 'function') return null;
+    st.lastEdits = editsKey(c);
+    const now = Date.now();
+    const sel = selectionKeys();
+    const only = !!(st.editsSel && sel && sel.length);
+    const limit = st.editsAll ? 100 : 6;
+    const rows = editRows(c, { limit: limit + 1, keys: only ? sel : null, now });
+    const more = rows.length > limit || st.editsAll;
+    const shown = rows.slice(0, limit);
+    const kids = [el('h3', { class: 'sl-h3' }, icon('clock-history'), ' ', T('window.live.edits.title'))];
+    if (sel && sel.length) {
+      const e = c.lastEditOf(sel);
+      const r = e ? editRow(c, e, now) : null;
+      const vars = r ? { name: editWho(r), age: T(r.age.key, r.age.vars), what: r.label || T('window.live.edits.unnamed') } : {};
+      const line = T(!r ? 'window.live.edits.selected.none' : r.self && !r.assistant ? 'window.live.edits.selected.you' : 'window.live.edits.selected.last', vars);
+      kids.push(el('p', { class: 'sl-muted sl-edits-sel', 'data-live-lastedit': true }, line));
+      const box = el('input', { type: 'checkbox', id: 'sl-edits-sel', 'data-live-edits-sel': true, checked: st.editsSel || null, onchange: (ev) => { st.editsSel = ev.target.checked; render(); } });
+      kids.push(el('label', { class: 'sl-check', for: 'sl-edits-sel' }, box, ' ', T('window.live.edits.selection')));
+    }
+    if (!shown.length) kids.push(el('p', { class: 'sl-hint', 'data-live-edits-none': true }, T(c.editsBefore() ? 'window.live.edits.none.since' : 'window.live.edits.none')));
+    else {
+      kids.push(el('ul', { class: 'sl-edits', 'data-live-edits': true }, ...shown.map((r) => (r.gap
+        ? el('li', { class: 'sl-edit is-gap', 'data-live-edit-gap': true }, el('span', { class: 'sl-muted' }, T('window.live.edits.gap')))
+        : el('li', { class: 'sl-edit', 'data-live-edit': r.q },
+          el('span', { class: 'sl-edit-who' }, editWho(r)),
+          el('span', { class: 'sl-edit-what' }, r.label || T('window.live.edits.unnamed')),
+          el('span', { class: 'sl-muted sl-edit-when' }, cap(T(r.age.key, r.age.vars)), r.count > 1 ? ', ' + T('window.live.edits.count', { n: r.count }) : ''))))));
+      if (more) kids.push(el('div', { class: 'sl-row' }, btn(T(st.editsAll ? 'window.live.edits.fewer' : 'window.live.edits.more'), () => { st.editsAll = !st.editsAll; render(); }, 'sl-btn-line sl-btn-sm', { 'data-live-edits-more': true })));
+    }
+    if (c.editsBefore()) kids.push(el('p', { class: 'sl-hint' }, T('window.live.edits.before')));
+    kids.push(el('p', { class: 'sl-hint', 'data-live-edits-privacy': true }, T('window.live.edits.privacy')));
+    return el('section', { class: 'sl-sec', 'data-live-edits-sec': true }, kids);
+  }
+
   function nameField() {
     const inp = el('input', { class: 'sl-input', id: 'sl-name', value: nameNow(), maxlength: 60, autocomplete: 'name', 'data-live-name': true, 'data-autofocus': true,
       onchange: (e) => { setName(e.target.value); } });
@@ -865,14 +991,14 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
       const cards = sectionCards();
       if (cards) kids.push(cards);
       if (onTablet) kids.push(el('p', { class: 'sl-note is-warn', 'data-live-tablet': true }, T('window.live.tablet.onscreen')));
-      kids.push(sectionCode(), sectionLink(), sectionPeople(),
+      kids.push(sectionCode(), sectionLink(), sectionPeople(), sectionEdits(c),
         el('div', { class: 'sl-row sl-foot' }, btn(T('window.live.end'), end, 'sl-btn-danger', { 'data-live-end-session': true })),
         el('p', { class: 'sl-hint' }, T('window.live.end.hint')));
     } else {
       const line = statusLine(c.status, { role: c.role, people: peopleRows(c).length });
       kids.push(el('p', { class: 'sl-state', 'data-live-state': c.status }, el('span', { class: 'sl-dot' }), T(line.key, line.vars)));
       if (c.status === 'waiting') kids.push(el('p', { class: 'sl-hint' }, T('window.live.waiting.hint')));
-      if (c.everWelcomed) kids.push(sectionPeople());
+      if (c.everWelcomed) kids.push(sectionPeople(), c.status === 'live' ? sectionEdits(c) : null);
       kids.push(el('div', { class: 'sl-row sl-foot' }, btn(T('window.live.leave'), leave, 'sl-btn-line', { 'data-live-leave': true })),
         el('p', { class: 'sl-hint' }, T('window.live.leave.hint')));
     }

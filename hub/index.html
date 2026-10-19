@@ -18,6 +18,8 @@
       } catch (e) {}
       if (s !== 'paper' && s !== 'model') s = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'model' : 'paper';
       d.setAttribute('data-space', s);
+      // Interface size (0.6 DF.28; Settings › Interface size, hub.js): before the first paint
+      try { var u = parseFloat(localStorage.getItem('cadcraft.studio.ui')); if (u >= 0.8 && u <= 1.4 && u !== 1) { d.style.setProperty('--studio-ui', String(u)); d.classList.add('studio-ui-sized'); } } catch (e) {}
     })();
   </script>
   <title>{{TITLE}}</title>
@@ -174,6 +176,22 @@
     <legend data-t="settings.input"></legend>
     <select class="select-cc studio-select" data-set-input data-t-label="settings.input"></select>
     <p class="studio-hint" data-t="settings.input.hint"></p>
+  </fieldset>
+  <fieldset class="studio-fieldset" data-set-ui-set>
+    <legend data-t="settings.ui"></legend>
+    <select class="select-cc studio-select" data-set-ui data-t-label="settings.ui"></select>
+    <p class="studio-hint" data-t="settings.ui.hint"></p>
+  </fieldset>
+  <fieldset class="studio-fieldset" data-set-layout-set>
+    <legend data-t="settings.layout"></legend>
+    <button type="button" class="studio-btn studio-btn-line studio-btn-sm" data-set-layout-reset data-t="settings.layout.reset"></button>
+    <p class="studio-hint" data-t="settings.layout.hint"></p>
+  </fieldset>
+  <fieldset class="studio-fieldset" data-set-legal>
+    <legend data-t="settings.legal"></legend>
+    <p class="studio-hint" data-t="settings.legal.operator"></p>
+    <p class="studio-hint" data-t="settings.legal.trademarks"></p>
+    <p class="studio-hint"><a href="https://getcadcraft.com/legal/terms" target="_blank" rel="noopener noreferrer" data-t="settings.legal.terms"></a> · <a href="https://getcadcraft.com/legal/privacy" target="_blank" rel="noopener noreferrer" data-t="settings.legal.privacy"></a></p>
   </fieldset>
 </dialog>
 
