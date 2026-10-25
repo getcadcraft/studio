@@ -10,6 +10,8 @@ const R = await import(path.join(STUDIO, 'hub/route.js'));
 const C = await import(path.join(STUDIO, 'hub/channel.js'));
 const Q = await import(path.join(STUDIO, 'hub/cloud.js'));
 
+const U = await import(path.join(STUDIO, 'hub/updates.js'));
+
 section('Routing by type (H.5, W2.13)');
 const ALL = ['cadcraft', 'bimcraft', 'modelcraft', 'markupcraft', 'takeoffcraft', 'civilcraft', 'detailcraft', 'partcraft'];
 ok(R.extOf('Level 1.DWG') === 'dwg' && R.extOf('C:\\Jobs\\a.b\\Plan.dxf') === 'dxf' && R.extOf('Job.takeoff.json') === 'takeoff.json' && R.extOf('x.json') === 'json' && R.extOf('README') === '' && R.extOf('.hidden') === '', 'extOf: case, folders with dots, two-part types, none');
@@ -273,7 +275,8 @@ section('Language file');
   // Studio Live's words (hub/live/*.js, window.live.* and live.join.*) are checked by test-live.mjs.
   const liveKey = (k) => k.startsWith('window.live.') || k.startsWith('live.join.');
   const used = new Set([...src.matchAll(/\b[tT]\('([a-z0-9.]+)'[,)]/g), ...src.matchAll(/\? '([a-z0-9]+\.[a-z0-9.]+)' : '([a-z0-9.]+)'/g), ...src.matchAll(/data-t(?:-title|-label)?="([a-z0-9.]+)"/g)].flatMap((m) => m.slice(1).filter(Boolean)));
-  for (const k of ['open', 'start', 'recent', 'windows', 'live', 'account', 'assistants', 'offline']) { used.add(`help.${k}.title`); used.add(`help.${k}.body`); }
+  for (const k of ['open', 'start', 'recent', 'windows', 'live', 'account', 'assistants', 'offline', 'updates']) { used.add(`help.${k}.title`); used.add(`help.${k}.body`); }
+  for (const k of U.KEYS) used.add(k);   // updates.js answers with these (the hub words them)
   for (const k of ['edition.browser', 'edition.desktop', 'noscript', 'studio.short', 'window.hub', 'window.hub.title']) used.add(k);
   const missing = [...used].filter((k) => !liveKey(k) && !(k in en));
   ok(!missing.length, 'every key the hub uses exists' + (missing.length ? ': ' + missing.join(', ') : ''));
@@ -292,6 +295,64 @@ section('SPDX');
   const files = ['hub', 'hub/live', 'pack', 'test'].flatMap((d) => fs.readdirSync(path.join(STUDIO, d)).filter((f) => /\.(m?js|css|php|html)$/.test(f)).map((f) => path.join(d, f)));
   const missing = files.filter((f) => !/SPDX-License-Identifier: Apache-2\.0/.test(fs.readFileSync(path.join(STUDIO, f), 'utf8').slice(0, 400)));
   ok(!missing.length, `every source file carries the Apache-2.0 SPDX line (${files.length})` + (missing.length ? ': ' + missing.join(', ') : ''));
+}
+
+section('The update check says what happened (0.7 D7.54)');
+ok(U.updateOutcome('current').key === 'updates.current' && U.updateOutcome('declined').key === 'updates.declined' && U.updateOutcome('busy').key === 'updates.busy', 'a plain-string answer from the shell has its own words (the hub used to read .message off it)');
+ok(U.updateOutcome('off').key === 'updates.none' && U.updateOutcome(null).key === 'updates.done' && U.updateOutcome({ message: 'x' }).key === 'updates.done', 'off, nothing, or an unknown shape → "Done", never a crash');
+const code = (c) => U.updateOutcome(null, Object.assign(new Error('x'), { code: c }));
+ok(code('no_build').key === 'updates.err.no_build' && code('no_build').kind === 'info', 'a release with no file for this system says so (info, not an error)');
+ok(['network', 'feed', 'signature', 'install'].every((c) => code(c).key === 'updates.err.' + c && code(c).kind === 'error'), 'network, feed, signature and install each have their own sentence');
+ok(U.updateOutcome(null, new Error('boom')).key === 'updates.failed' && U.updateOutcome(null, 'weird').key === 'updates.failed', 'an unknown failure keeps the generic sentence');
+{
+  const en = JSON.parse(fs.readFileSync(path.join(STUDIO, 'hub/lang/en.json'), 'utf8'));
+  const keys = ['updates.current', 'updates.declined', 'updates.busy', 'updates.none', 'updates.done', 'updates.failed', ...['no_build', 'network', 'feed', 'signature', 'install'].map((c) => 'updates.err.' + c)];
+  const missing = keys.filter((k) => !en[k]);
+  ok(!missing.length, 'every update outcome has its words in en.json' + (missing.length ? ': ' + missing.join(', ') : ''));
+  const hub = fs.readFileSync(path.join(STUDIO, 'hub/hub.js'), 'utf8');
+  ok(!/updateReady/.test(hub), 'the hub no longer forces the dismissed What\'s new card back whenever the build has a feed');
+}
+
+section('Settings › Updates (0.7 MSIX + one update endpoint)');
+{
+  const base = { available: true, auto: false, autoAllowed: true, source: 'feed', route: null, edition: 'installer', version: '0.7.0', platform: 'windows', busy: false, last: null };
+  let v = U.updatesView(base);
+  ok(v.edition === 'updates.edition.installer' && v.platform === 'updates.platform.windows' && v.from === 'updates.from.site' && v.version === '0.7.0', 'version, edition, platform and the source are shown');
+  ok(v.last === null && v.latest === null && !v.check.disabled && v.install === null && v.auto.shown, 'never checked: no latest yet, Check is on, no Install');
+  v = U.updatesView({ ...base, last: { at: 1, outcome: 'current', latest: '', notes: '', asked: true } });
+  ok(v.latest.same && v.latest.version === '0.7.0' && v.last.key === 'updates.last.current', 'a 204 answer = "You are on the latest version." with this version');
+  v = U.updatesView({ ...base, last: { at: 1, outcome: 'declined', latest: '0.7.1', notes: 'Fixes', asked: true } });
+  ok(!v.latest.same && v.latest.version === '0.7.1' && v.latest.notes === 'Fixes' && v.install.key === 'updates.install', 'a newer version found: its notes and an Install button');
+  v = U.updatesView({ ...base, last: { at: 1, outcome: 'available', latest: '0.7.0', notes: '' } });
+  ok(v.latest.same && v.install === null, 'the same version on offer counts as the latest');
+  v = U.updatesView({ ...base, busy: true, last: { at: 1, outcome: 'declined', latest: '0.7.1' } });
+  ok(v.check.disabled && v.check.why === 'updates.why.busy' && v.install === null, 'while a check runs: both buttons wait, with the reason');
+  v = U.updatesView({ ...base, available: false, source: null, autoAllowed: false });
+  ok(v.check.disabled && v.check.why === 'updates.why.none' && !v.auto.shown, 'no updater: Check is off with the reason');
+  v = U.updatesView({ ...base, source: 'package', route: 'store', edition: 'msix-store', autoAllowed: false, last: { at: 1, outcome: 'available', latest: '0.7.1' } });
+  ok(v.from === 'updates.from.store' && v.install.key === 'updates.install.store' && v.autoNote === 'updates.auto.windows' && !v.auto.shown, 'a Store install: updates come from the Microsoft Store, Install opens the Store update');
+  v = U.updatesView({ ...base, source: 'package', route: 'appinstaller', edition: 'msix-web', autoAllowed: true });
+  ok(v.from === 'updates.from.appinstaller' && v.autoNote === null, 'the website package: App Installer');
+  v = U.updatesView({ ...base, source: 'package', route: 'sideloaded', edition: 'msix-web', autoAllowed: false, last: { at: 1, outcome: 'not_store' } });
+  ok(v.from === 'updates.from.sideloaded' && v.last.key === 'updates.err.not_store' && v.autoNote === null, 'a package from a file says it has no update source');
+  v = U.updatesView({ ...base, source: 'notify', edition: 'portable', last: { at: 1, outcome: 'declined', latest: '0.7.1' } });
+  ok(v.install.key === 'updates.install.download' && v.from === 'updates.from.notify', 'the portable copy offers a Download, not an install');
+  ok(U.updatesView(null) === null && code('not_store').key === 'updates.err.not_store', 'no status → nothing; not_store has its words');
+  v = U.updatesView({ ...base, version: '0.7.1', last: { at: 1, outcome: 'installed', latest: '0.7.1' } });
+  ok(v.latest.same && v.last.key === 'updates.last.installed' && v.auto.hint === 'updates.auto.daily', 'after an update: "updated to this version", the latest; the once-a-day line under the switch');
+  v = U.updatesView({ ...base, source: 'package', route: 'appinstaller', edition: 'msix-web', autoAllowed: true, auto: true });
+  ok(v.auto.shown && v.auto.on && v.autoNote === null, 'the website package: automatic checks are ours (the same endpoint behind App Installer)');
+  const en = JSON.parse(fs.readFileSync(path.join(STUDIO, 'hub/lang/en.json'), 'utf8'));
+  ok(en['updates.latest.same'] === 'You are on the latest version.', 'the owner\'s exact words for the latest version');
+  const miss = U.KEYS.filter((k) => !en[k]);
+  ok(!miss.length, 'every key updates.js answers is in en.json' + (miss.length ? ': ' + miss.join(', ') : ''));
+  for (const loc of ['es-MX', 'id']) {
+    const l = JSON.parse(fs.readFileSync(path.join(STUDIO, `hub/lang/${loc}.json`), 'utf8'));
+    const m = [...U.KEYS, 'settings.updates', 'settings.updates.current', 'settings.updates.latest'].filter((k) => !l[k]);
+    ok(!m.length, `${loc} has a draft for every update word` + (m.length ? ': ' + m.join(', ') : ''));
+  }
+  const html = fs.readFileSync(path.join(STUDIO, 'hub/index.html'), 'utf8');
+  ok(/data-set-updates[\s\S]*data-upd/.test(html), 'Settings has its Updates section');
 }
 
 done();

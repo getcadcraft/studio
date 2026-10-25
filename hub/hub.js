@@ -24,6 +24,7 @@ import { cloudClient, cardModel, SyncQueue, SIGN_IN_AGAIN, CloudError } from './
 import { createHost, recentStore, createControlRelay } from './host.js';
 import { wireJoin } from './live/hub-join.js';
 import { newsFeed, newsDismissal, newer } from './news.js';
+import { updateOutcome, updatesView } from './updates.js';
 import { avatarStore } from './avatar.js';
 
 const doc = document;
@@ -512,7 +513,9 @@ async function openCloud(d, msg) {
     const file = new File([got.bytes], name);
     const id = newHandoffId();
     await putHandoff(id, file, 'studio-cloud');
-    if (!(await openApp(d.app, { search: '?handoff=' + id }))) { pending(t('open.pending', { app: appName(d.app), file: name }), () => openApp(d.app, { search: '?handoff=' + id })); }
+    // The app also learns which cloud drawing (and version) this is, for its History panel (0.7 D7.31).
+    const search = '?handoff=' + id + '&cloud=' + encodeURIComponent(d.uuid) + (got.version ? '&cv=' + got.version : '');
+    if (!(await openApp(d.app, { search }))) { pending(t('open.pending', { app: appName(d.app), file: name }), () => openApp(d.app, { search })); }
     msg.textContent = '';
   } catch (e) {
     msg.textContent = cloudMessage(e);
@@ -758,14 +761,15 @@ let studioVersion = null;
 // Dismissing the card (owner, 2026-10-15): × in its heading; it stays away until something is newer than what it showed —
 // a post published after the dismissal, a newer release, another build (new release notes) — or an update is ready to
 // install. Settings › News › "Show What's new again" brings it back. news.js newsDismissal() keeps the mark.
+// A build having an update feed is not "an update is ready" (0.7 D7.54: it brought the dismissed card back at every start,
+// even with updates off): a newer release is already what `dismissal.hidden` looks at, so nothing forces the card.
 const dismissal = newsDismissal();
 const newsBuild = () => String(suite.build || '') + ':' + suite.apps.map((a) => a.slug + '@' + a.release).join(',');
 let newsNow = { items: [], latest: null };
-let updateReady = false;
 function applyNewsCard() {
   const card = $('[data-news-card]');
   if (!card) return;
-  const away = !updateReady && dismissal.hidden(newsOn() ? newsNow : { items: [], latest: null }, newsBuild());
+  const away = dismissal.hidden(newsOn() ? newsNow : { items: [], latest: null }, newsBuild());
   card.hidden = away;
   const back = $('[data-news-show]');
   if (back) back.hidden = !dismissal.get();
@@ -773,7 +777,6 @@ function applyNewsCard() {
 function wireNewsDismiss() {
   $('[data-news-dismiss]').addEventListener('click', () => {
     dismissal.dismiss(newsOn() ? newsNow : { items: [], latest: null }, newsBuild());
-    updateReady = false;
     applyNewsCard();
     say(t('news.dismissed'));
     $('[data-open-settings]').focus();   // the button is gone; Settings is where it comes back
@@ -823,19 +826,62 @@ async function renderNews() {
   if (!desk) { box.replaceChildren(el('p', {}, t('updates.browser'))); return; }
   let info = {};
   try { info = await desk.info(); } catch { info = {}; }
-  if (info.store === true || /^(android|ios|ipados)$/.test(String(info.platform || ''))) { box.replaceChildren(el('p', {}, t('updates.store'))); return; }
   let st = null;
   try { st = desk.updates ? await desk.updates.status() : null; } catch { st = null; }
-  if (!st || !st.available) { box.replaceChildren(el('p', {}, t('updates.none'))); return; }
-  updateReady = true;   // an update to install brings a dismissed card back
-  applyNewsCard();
-  const auto = el('input', { type: 'checkbox', id: 'studio-auto-update', checked: !!st.auto, onchange: (e) => desk.updates.setAuto(e.target.checked).catch(() => {}) });
-  box.replaceChildren(el('p', {}, t('updates.one')),
-    el('div', { class: 'studio-btnrow' }, el('button', { type: 'button', class: 'studio-btn', onclick: async () => {
-      say(t('updates.checking'));
-      try { const r = await desk.updates.check(); say(r && r.message ? r.message : t('updates.done')); } catch { say(t('updates.failed'), 'error'); }
-    } }, t('updates.check'))),
-    el('label', { class: 'studio-check', for: 'studio-auto-update' }, auto, ' ', t('updates.auto')));
+  // 0.7: a package (MSIX) has a check too (the Store / App Installer behind it), so the status decides before the store flag.
+  if (!st || !st.available) {
+    if (info.store === true || /^(android|ios|ipados)$/.test(String(info.platform || ''))) { box.replaceChildren(el('p', {}, t('updates.store'))); return; }
+    if (info.portable === true) { box.replaceChildren(el('p', {}, t('updates.portable'))); return; }
+    box.replaceChildren(el('p', {}, t('updates.none')));
+    return;
+  }
+  const v = updatesView(st);
+  const auto = el('input', { type: 'checkbox', id: 'studio-auto-update', checked: !!st.auto, onchange: (e) => desk.updates.setAuto(e.target.checked).then(renderUpdatesSettings).catch(() => {}) });
+  box.replaceChildren(...[el('p', {}, t('updates.one')),
+    v.from ? el('p', { class: 'studio-hint' }, t('settings.updates.from') + ': ' + t(v.from)) : null,
+    el('div', { class: 'studio-btnrow' }, el('button', { type: 'button', class: 'studio-btn', onclick: () => runUpdateCheck() }, t('updates.check'))),
+    v.auto.shown ? el('label', { class: 'studio-check', for: 'studio-auto-update' }, auto, ' ', t('updates.auto')) : null].filter(Boolean));
+}
+
+/** The person's own check (What's new card, Settings › Updates): the shell asks before anything installs. */
+async function runUpdateCheck() {
+  say(t('updates.checking'));
+  const p = desk.updates.check();
+  setTimeout(renderUpdatesSettings, 300);   // shows "checking" (busy) while it runs
+  let r = null, err = null;
+  try { r = await p; } catch (e) { err = e || new Error('failed'); }
+  const o = updateOutcome(r, err);
+  say(t(o.key), o.kind === 'error' ? 'error' : undefined);
+  renderUpdatesSettings();
+}
+
+/** Settings › Updates (owner 2026-10-24): version and edition, where updates come from, the last check, the latest version
+ *  for this edition with its notes and Install, automatic checks. Everything from cc_updates_status (updates.js updatesView). */
+async function renderUpdatesSettings() {
+  const box = $('[data-upd]');
+  if (!box) return;
+  let st = null;
+  try { st = desk && desk.updates ? await desk.updates.status() : null; } catch { st = null; }
+  const v = updatesView(st);
+  if (!v) { box.replaceChildren(el('p', { class: 'studio-hint' }, t(desk ? 'updates.none' : 'updates.browser'))); return; }
+  const row = (label, ...val) => [el('dt', {}, label), el('dd', {}, ...val)];
+  const when = (ms) => el('time', { datetime: new Date(ms).toISOString(), title: new Date(ms).toLocaleString(locale()) }, new Date(ms).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }));
+  const facts = el('dl', { class: 'studio-facts' },
+    row(t('settings.updates.current'), el('strong', {}, v.version), ' · ', t(v.edition), v.platform ? ' · ' + t(v.platform) : ''),
+    v.from ? row(t('settings.updates.from'), t(v.from)) : null,
+    row(t('settings.updates.last'), v.last ? [when(v.last.at), ' · ', t(v.last.key)] : t('updates.never')),
+    row(t('settings.updates.latest'), !v.latest ? t('updates.latest.unknown')
+      : v.latest.same ? [el('strong', {}, t('updates.latest.same')), ' ', t('settings.updates.same.detail', { v: v.latest.version }), ...(v.last ? [' · ', when(v.last.at)] : [])]
+        : [el('strong', {}, v.latest.version)]));
+  const notes = v.latest && !v.latest.same && v.latest.notes ? el('div', { class: 'studio-notes' }, el('p', { class: 'studio-hint' }, t('settings.updates.notes')), el('p', {}, v.latest.notes)) : null;
+  const check = el('button', { type: 'button', class: 'studio-btn studio-btn-line studio-btn-sm', 'data-upd-check': true, disabled: v.check.disabled, title: v.check.why ? t(v.check.why) : null, onclick: () => runUpdateCheck() }, t('updates.check'));
+  const install = v.install ? el('button', { type: 'button', class: 'studio-btn studio-btn-plot studio-btn-sm', 'data-upd-install': true, onclick: () => runUpdateCheck() }, t(v.install.key)) : null;
+  const auto = v.auto.shown ? el('label', { class: 'studio-check' }, el('input', { type: 'checkbox', 'data-upd-auto': true, checked: v.auto.on, onchange: (e) => desk.updates.setAuto(e.target.checked).then(renderUpdatesSettings).catch(() => {}) }), ' ', t('updates.auto')) : null;
+  const autoHint = v.auto.shown ? el('p', { class: 'studio-hint' }, t(v.auto.hint)) : null;
+  // replaceChildren() would print a null as "null": only the parts this copy has.
+  box.replaceChildren(...[facts, notes, el('div', { class: 'studio-btnrow' }, check, install),
+    v.check.why ? el('p', { class: 'studio-hint', 'data-upd-why': true }, t(v.check.why)) : null,
+    auto, autoHint, v.autoNote ? el('p', { class: 'studio-hint' }, t(v.autoNote)) : null].filter(Boolean));
 }
 
 // ------------------------------------------------------------------ offline (browser edition, H.8/H.10)
@@ -930,7 +976,8 @@ function wireSettings() {
   wireInputFamily(dlg);
   wireLayoutReset(dlg);
   wireUiSize(dlg);
-  $('[data-open-settings]').addEventListener('click', () => dlg.showModal());
+  renderUpdatesSettings();
+  $('[data-open-settings]').addEventListener('click', () => { renderUpdatesSettings(); dlg.showModal(); });
   dlg.querySelector('[data-close]').addEventListener('click', () => dlg.close());
   doc.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === ',') { e.preventDefault(); dlg.open ? dlg.close() : dlg.showModal(); } });
   // Another window changed the theme (the apps share cc-space on this origin).
@@ -1000,7 +1047,7 @@ function wireHelp() {
   $('[data-open-help]').addEventListener('click', () => dlg.showModal());
   dlg.querySelector('[data-close]').addEventListener('click', () => dlg.close());
   doc.addEventListener('keydown', (e) => { if (e.key === 'F1') { e.preventDefault(); dlg.open ? dlg.close() : dlg.showModal(); } });
-  const topics = ['start', 'open', 'recent', 'windows', 'live', 'account', 'assistants', 'offline'];
+  const topics = ['start', 'open', 'recent', 'windows', 'live', 'account', 'assistants', 'offline', 'updates'];
   dlg.querySelector('[data-help-body]').replaceChildren(...topics.filter((k) => k !== 'account' || desk).map((k) => el('section', { class: 'studio-help-topic' },
     el('h3', {}, t('help.' + k + '.title')), el('p', {}, t('help.' + k + '.body')))));
 }
@@ -1023,7 +1070,10 @@ if (desk && typeof desk.info === 'function') {
     tablet = true;
     doc.documentElement.classList.add('is-tablet');
     const tag = doc.querySelector('[data-t="edition.browser"]');
-    if (tag) tag.textContent = t('edition.tablet');
+    // "Phone" on a phone (0.7 IPH.1; it said "Tablet" there): the screen's short side under 600 px, the shell's own phone rule.
+    const word = () => { if (tag) tag.textContent = t(Math.min(window.innerWidth, window.innerHeight) < 600 ? 'edition.phone' : 'edition.tablet'); };
+    word();
+    addEventListener('resize', word);
     const wt = doc.getElementById('studio-win-h');
     if (wt) wt.textContent = t('windows.title.tablet');
     renderWindows();

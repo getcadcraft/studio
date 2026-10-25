@@ -90,7 +90,7 @@ async function tablet() {
   root.classList.add('is-tablet');
   // The shell's app-shell.js (deferred, later in the page) words it "Desktop": said again once the page has loaded.
   const chip = document.querySelector('.app-bar-area');
-  const word = () => { if (chip) chip.textContent = T('window.tablet', 'Tablet'); };
+  const word = () => { if (chip) chip.textContent = Math.min(innerWidth, innerHeight) < 600 ? T('window.phone', 'Phone') : T('window.tablet', 'Tablet'); };   // a phone says Phone (0.7 IPH.1)
   word();
   // The phone module and the panels module start with the page (deferred): hand over once it has loaded.
   if (document.readyState !== 'complete') await new Promise((r) => addEventListener('load', r, { once: true }));

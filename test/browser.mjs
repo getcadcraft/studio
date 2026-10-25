@@ -89,7 +89,8 @@ try {
   const tiles = await hub.$$eval('[data-tiles] [data-app]', (n) => n.map((x) => x.getAttribute('data-app')));
   ok(tiles.join() === APPS.join(), 'one tile per app in the suite, lineup order: ' + tiles.join(', '));
   ok(await hub.$eval('[data-tiles] [data-app="' + APPS[0] + '"] .studio-tile-ver', (n) => n.textContent.length > 0), 'each tile shows its version');
-  ok(/SuperCadCraft/.test(await hub.textContent('[data-upcoming]')) && (await hub.$eval('.studio-upcoming', (n) => n.getAttribute('aria-disabled'))) === 'true' && !(await hub.$('.studio-upcoming a, .studio-upcoming button')), 'SuperCadCraft grayed out, nothing to click');
+  const upName = await hub.$eval('#studio-suite', (n) => (JSON.parse(n.textContent).upcoming || [])[0]?.name || '');   // the Catalog's name (it was renamed once)
+  ok(!!upName && (await hub.textContent('[data-upcoming]')).includes(upName) && (await hub.$eval('.studio-upcoming', (n) => n.getAttribute('aria-disabled'))) === 'true' && !(await hub.$('.studio-upcoming a, .studio-upcoming button')), 'the upcoming app (' + upName + ') grayed out, nothing to click');
   ok(!(await hub.$eval('[data-account]', (n) => !n.hidden)), 'browser edition: no account card (cloud is desktop only, D.4)');
   ok(await hub.$eval('[data-assist]', (n) => n.hidden), 'browser edition: no "Connect an assistant" card (no local server, X.5)');
   await shot(hub, 'hub-paper');

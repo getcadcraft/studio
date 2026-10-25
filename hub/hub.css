@@ -299,3 +299,11 @@ html.is-tablet .studio-name { white-space: nowrap; }
 
 /* Interface size (0.6 DF.28): Settings › Interface size scales every rem of the hub (index.html sets it before the first paint). */
 html.studio-ui-sized { font-size: calc(clamp(100%, 0.75rem + 0.2083vw, 125%) * var(--studio-ui, 1)); }
+
+/* Settings › Updates (0.7): version, source, last check, latest version as a two-column list. */
+.studio-facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; margin: 0.25rem 0 0; }
+.studio-facts dt { color: var(--ink-2); font-weight: 500; }
+.studio-facts dd { margin: 0; overflow-wrap: anywhere; }
+.studio-notes { border-left: var(--pen-2) solid var(--grid); padding: 0.25rem 0 0.25rem 0.75rem; margin-top: 0.5rem; white-space: pre-line; }
+.studio-notes p { margin: 0; }
+@media (max-width: 36rem) { .studio-facts { grid-template-columns: 1fr; } .studio-facts dd { margin-bottom: 0.4rem; } }

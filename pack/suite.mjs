@@ -115,7 +115,7 @@ fs.mkdirSync(DEST, { recursive: true });
 // Shared shell + libraries: a path is shared when every edition that has it has the same bytes.
 const shared = new Map();       // rel path (assets/css/x, assets/js/x, assets/vendor/lib/ver/...) → sha
 const conflict = new Set();
-const isSharable = (r) => /^assets\/(css|js)\/[^/]+$/.test(r) || /^assets\/vendor\/[a-z0-9._-]+\/[^/]+\//.test(r) || /^favicon[^/]*$/.test(r);
+const isSharable = (r) => /^assets\/(css|js)\/[^/]+$/.test(r) || /^assets\/js\/compute\/[^/]+$/.test(r) || /^assets\/vendor\/[a-z0-9._-]+\/[^/]+\//.test(r) || /^favicon[^/]*$/.test(r);
 for (const slug of INCLUDED) {
   for (const r of walk(eds[slug])) {
     if (!isSharable(r)) continue;
@@ -242,7 +242,7 @@ function suitePage(slug, html, isShared) {
 
 // ------------------------------------------------------------------ the hub
 
-const HUB_FILES = ['hub.js', 'hub.css', 'route.js', 'channel.js', 'handoff.js', 'cloud.js', 'news.js', 'avatar.js', 'window.js'];
+const HUB_FILES = ['hub.js', 'hub.css', 'route.js', 'channel.js', 'handoff.js', 'cloud.js', 'news.js', 'updates.js', 'avatar.js', 'window.js'];
 for (const f of HUB_FILES) copy(path.join(STUDIO, 'hub', f), path.join(DEST, 'hub', f));
 // Studio Live's window and hub modules (0.5 LV.6 / LV.7 / LV.23).
 for (const f of fs.readdirSync(path.join(STUDIO, 'hub/live')).filter((f) => /\.(js|css)$/.test(f))) copy(path.join(STUDIO, 'hub/live', f), path.join(DEST, 'hub/live', f));
@@ -319,7 +319,8 @@ for (const page of ['index.html', ...INCLUDED.map((s) => `apps/${s}/index.html`)
     if (!f.startsWith(DEST)) problems.push(`${page}: ${u} leaves the suite`);
     else if (!exists(f)) problems.push(`${page}: ${u} missing`);
   }
-  if (/(?:src|href)="\/(?!\/)|"\/assets\//.test(html)) problems.push(`${page}: an absolute URL`);
+  // an import map's KEYS stay absolute on purpose (the apps' layout adapters import '/assets/js/app-workspace-input.js'); only keys are skipped
+  if (/(?:src|href)="\/(?!\/)|"\/assets\//.test(html.replace(/"\/assets\/[^"]*"\s*:/g, '"":'))) problems.push(`${page}: an absolute URL`);
 }
 for (const a of suiteApps) for (const u of a.offline) if (!exists(path.join(DEST, u))) problems.push(`offline list of ${a.slug}: ${u} missing`);
 if (problems.length) die('broken suite:\n  ' + problems.slice(0, 20).join('\n  '));

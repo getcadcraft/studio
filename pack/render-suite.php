@@ -60,6 +60,7 @@ foreach (['render.php', 'stubs.php'] as $f) copy("$site/devshell/$f", "$stage/de
 copy("$pub/core/components/app-settings.inc", "$stage/devshell/site/core/components/app-settings.inc");
 copy("$pub/core/classes/Lang.php", "$stage/devshell/site/core/classes/Lang.php");
 $copyTree("$pub/assets/lang/shell", "$stage/devshell/site/assets/lang/shell");
+if (is_dir("$pub/assets/workspaces")) $copyTree("$pub/assets/workspaces", "$stage/devshell/site/assets/workspaces");   // the built-in layouts (0.7 WS.6) for workspaceConfig()
 $copyTree("$ed/$appRel", "$stage/app");
 foreach (['ui.inc', 'settings.inc'] as $f) if (is_file("$src/$f")) copy("$src/$f", "$stage/app/$f");
 file_put_contents("$stage/offline.json", json_encode($offline, JSON_UNESCAPED_SLASHES));
