@@ -9,6 +9,7 @@
  * - Puts a "Studio" button in the app bar: back to the hub in one click (desktop: the hub window; browser: the hub's tab).
  * - Answers the hub's "window.focus" message where the platform allows it.
  * - Drag between apps (0.8 EG.78): `window.cadcraftStudio.drag` (window-drag.js).
+ * - Undo across apps (0.9 EG.77): forwards the app's `cc-undo-report` steps to the hub and answers its undo.probe / undo.run (see below).
  * - Send to a machine (0.8 EG.40): `window.cadcraftStudio.machines.send({ name, bytes, device })` (machines-ui.js; null outside desktop Studio).
  * Words: #studio-window-lang (the packer embeds the few strings, from hub/lang/<locale>.json "window.*").
  */
@@ -65,6 +66,19 @@ async function start() {
   }
   Object.defineProperty(window, 'cadcraftStudio', { value: Object.freeze({ id: ch.id, app, post: ch.post, on: ch.on, hub, drag, machines }), enumerable: true });
   ch.on('window.focus', () => { try { window.focus(); } catch { /* the browser decides */ } });
+  // EG.77 undo across apps (0.9 mounts-09): the app tells its finished steps with the window event `cc-undo-report` (its undo-hook.js); they go to the channel as
+  // `edit.done` for the hub's journal. The hub's undo.probe / undo.run reach the app's own reporter (window.ccUndoReporter), and the answer goes back as
+  // `undo.reply` with the same rid. A window with no reporter answers null, so the hub does not wait for it.
+  window.addEventListener('cc-undo-report', (e) => { const d = e && e.detail; if (d && d.type === 'edit.done') { try { ch.post('edit.done', d.data); } catch { /* closed */ } } });
+  for (const type of ['undo.probe', 'undo.run']) {
+    ch.on(type, (data, env) => {
+      const rid = data && typeof data.rid === 'string' ? data.rid.slice(0, 64) : '';
+      if (!rid) return;
+      let reply = null;
+      try { const rep = window.ccUndoReporter; reply = rep && typeof rep.onMessage === 'function' ? rep.onMessage(type, { step: data.step }) : null; } catch { reply = null; }
+      try { ch.post('undo.reply', { rid, reply: reply === undefined ? null : reply }, env.from); } catch { /* closed */ }
+    });
+  }
   window.addEventListener('pagehide', () => ch.close());
   new MutationObserver(() => { ch.title = document.title; }).observe(document.querySelector('title') || document.head, { childList: true, subtree: true, characterData: true });
 

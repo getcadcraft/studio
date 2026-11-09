@@ -19,6 +19,7 @@
 import { t, has, init, locale } from '../assets/js/i18n.js';
 import { route, cleanAlways, knownExtensions, extOf } from './route.js';
 import { openChannel, windowId } from './channel.js';
+import { Journal } from './undo-journal.js';   // 0.9 EG.77: one Undo across the windows
 import { putHandoff, newHandoffId } from './handoff.js';
 import { cloudClient, cardModel, SyncQueue, SIGN_IN_AGAIN, CloudError } from './cloud.js';
 import { createHost, recentStore, createControlRelay } from './host.js';
@@ -143,6 +144,45 @@ async function refreshWindows() {
 channel.on('hello', (d, e) => { if (APPS.includes(e.app)) { openWindows.set(e.from, { id: e.from, app: e.app, title: (d && d.title) || '' }); renderWindows(); } });
 channel.on('bye', (d, e) => { if (openWindows.delete(e.from)) renderWindows(); });
 
+// ---- EG.77 (0.9 mounts-09): "Undo last step" across the windows. Each app window tells the channel `edit.done` after every step (window.js forwards the
+// app's own `cc-undo-report`); the journal keeps the newest step per window. The button names the newest one, asks first, then asks THAT window to probe
+// and run its own next undo (undo.probe / undo.run, answered with undo.reply). A window whose stack moved on is skipped, never forced.
+const journal = new Journal();
+const asks = new Map();   // rid → { win, resolve, timer }
+let askSeq = 0;
+channel.on('undo.reply', (d, e) => {
+  const p = d && typeof d.rid === 'string' ? asks.get(d.rid) : null;
+  if (!p || p.win !== e.from) return;
+  clearTimeout(p.timer); asks.delete(d.rid); p.resolve(d.reply === undefined ? null : d.reply);
+});
+const askWindow = (win, type, data) => new Promise((resolve) => {
+  const rid = 'u' + (++askSeq) + '-' + Math.random().toString(36).slice(2, 8);
+  const timer = setTimeout(() => { asks.delete(rid); resolve(null); }, 2000);   // a closed or silent window: no answer
+  asks.set(rid, { win, resolve, timer });
+  channel.post(type, { ...(data || {}), rid }, win);
+});
+channel.on('edit.done', (d, e) => { if (APPS.includes(e.app)) { journal.record(e.from, e.app, d, Date.now()); renderUndo(); } });
+channel.on('bye', (d, e) => { journal.forget(e.from); renderUndo(); });
+function renderUndo() {
+  const box = $('[data-undo-across]');
+  if (!box) return;
+  const next = journal.next();
+  box.hidden = !next;
+  if (!next) return;
+  box.querySelector('[data-undo-run]').textContent = t('undo.across');
+  box.querySelector('[data-undo-what]').textContent = t('undo.across.what', { label: next.label || t('undo.across.step'), app: appName(next.app) });
+}
+async function undoAcross() {
+  const next = journal.next();
+  if (!next) { say(t('undo.across.nothing')); renderUndo(); return; }
+  const label = next.label || t('undo.across.step'), app = appName(next.app);
+  if (!(await confirmBox(t('undo.across.confirm.title', { label, app }), t('undo.across.confirm.body'), t('undo.across.confirm.go')))) return;
+  const r = await journal.undo(askWindow);
+  say(r.ok ? t('undo.across.done', { label: r.label || label, app: appName(r.app) }) : t('undo.across.moved'), r.ok ? 'info' : 'error');
+  renderUndo();
+}
+doc.addEventListener('click', (ev) => { if (ev.target && ev.target.closest && ev.target.closest('[data-undo-run]')) undoAcross(); });
+
 /** Open an app window. paths (desktop) and search ("?handoff=…") go with it. Browser: call inside the click. */
 async function openApp(slug, { paths = [], search = '' } = {}) {
   if (!appBy[slug]) return null;
@@ -216,7 +256,13 @@ function askApp(name, r) {
 }
 
 /** Route one picked/dropped file. `item` = {name, path?, file?}. In the browser this must start inside the gesture. */
+// FX.27: on the desktop a dropped file can arrive twice (the shell's native drop gives its path, the page's own drop event gives the File).
+// The same name within 1.5 s is one drop.
+const routedAt = new Map();
 async function routeOne(item) {
+  const now = Date.now();
+  if (desk && item.name && now - (routedAt.get(item.name) || 0) < 1500) return;
+  if (item.name) routedAt.set(item.name, now);
   const r = route(item.name, { apps: APPS, always: always() });
   if (!r.known || !r.apps.length) { say(t('open.unknown', { file: item.name, ext: r.ext ? '.' + r.ext : '' }), 'error'); return; }
   let slug = r.app;
@@ -1161,4 +1207,4 @@ if (!desk || !desk.account) $('[data-account]').hidden = true;
 doc.documentElement.classList.add('studio-ready');
 
 // For tests and add-ons: what the hub decided, never the person's files.
-window.cadcraftStudioHub = Object.freeze({ suite, route: (name) => route(name, { apps: APPS, always: always() }), channel, openApp, refreshWindows, renderRecent, refreshAccount, queue: () => queue, join: (text) => join && join.go(text) });
+window.cadcraftStudioHub = Object.freeze({ suite, route: (name) => route(name, { apps: APPS, always: always() }), channel, openApp, refreshWindows, undoAcross, journal, renderRecent, refreshAccount, queue: () => queue, join: (text) => join && join.go(text) });

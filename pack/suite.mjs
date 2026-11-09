@@ -266,7 +266,7 @@ function suitePage(slug, html, isShared) {
 
 // ------------------------------------------------------------------ the hub
 
-const HUB_FILES = ['hub.js', 'hub.css', 'route.js', 'channel.js', 'handoff.js', 'cloud.js', 'news.js', 'updates.js', 'avatar.js', 'window.js', 'connect-ai.js', 'drag.js', 'window-drag.js', 'machines.js', 'machines-ui.js', 'hosted.js', 'standards-card.js', 'activity-card.js', 'ask-key-card.js'];
+const HUB_FILES = ['hub.js', 'hub.css', 'route.js', 'channel.js', 'handoff.js', 'cloud.js', 'news.js', 'updates.js', 'avatar.js', 'window.js', 'connect-ai.js', 'drag.js', 'window-drag.js', 'machines.js', 'machines-ui.js', 'hosted.js', 'standards-card.js', 'activity-card.js', 'ask-key-card.js', 'undo-journal.js'];
 for (const f of HUB_FILES) copy(path.join(STUDIO, 'hub', f), path.join(DEST, 'hub', f));
 // Studio Live's window and hub modules (0.5 LV.6 / LV.7 / LV.23).
 for (const f of fs.readdirSync(path.join(STUDIO, 'hub/live')).filter((f) => /\.(js|css)$/.test(f))) copy(path.join(STUDIO, 'hub/live', f), path.join(DEST, 'hub/live', f));
