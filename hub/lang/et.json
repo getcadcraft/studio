@@ -783,5 +783,11 @@
   "activity.export.txt": "Ekspordi tekst",
   "activity.undo": "Tagasivõtmise samm: {step}",
   "activity.file": "Fail: {file}",
-  "window.machines.send.files": "{n} faili ({kb} KB), saadetud üksteise järel"
+  "window.machines.send.files": "{n} faili ({kb} KB), saadetud üksteise järel",
+  "page.back": "Tagasi Studiosse",
+  "feature.configure": "Seadista",
+  "feature.ai.title": "AI rakenduses Studio",
+  "feature.ai.body": "Kasuta oma AI-mudelit igas rakenduses Küsi-kastis, ühenda juba kasutatav AI-rakendus ja vaata, mida su assistendid tegid.",
+  "feature.machines.body": "Saada töö 3D-printerile, CNC-masinale või laserlõikurile oma võrgus. Lisa, testi ja eemalda oma masinad siin.",
+  "feature.standards.body": "Su firma kodureeglid, kirjutatud ühe korra: kihi- ja failinimed, sõnastus ja kontrollid, mida joonis peab läbima. Iga ühendatud AI järgib neid."
 }

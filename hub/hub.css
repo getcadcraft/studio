@@ -299,3 +299,43 @@ html.studio-ui-sized { font-size: calc(clamp(100%, 0.75rem + 0.2083vw, 125%) * v
 .studio-notes { border-left: var(--pen-2) solid var(--grid); padding: 0.25rem 0 0.25rem 0.75rem; margin-top: 0.5rem; white-space: pre-line; }
 .studio-notes p { margin: 0; }
 @media (max-width: 36rem) { .studio-facts { grid-template-columns: 1fr; } .studio-facts dd { margin-bottom: 0.4rem; } }
+
+/* Collapsible cards (0.10 UI): the heading is the toggle; caret on the right, down when open, up when closed; state remembered per card */
+.studio-collapse > .studio-collapse-sum { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 2.75rem; margin: -0.25rem 0; }
+.studio-collapse > .studio-collapse-sum::-webkit-details-marker { display: none; }
+.studio-collapse > .studio-collapse-sum .studio-h { margin: 0; }
+.studio-collapse > .studio-collapse-sum::after { content: ""; flex: none; width: 0.55rem; height: 0.55rem; border: solid var(--ink-2); border-width: 0 0.15rem 0.15rem 0; transform: rotate(-135deg) translate(-0.1rem, -0.1rem); transition: transform 0.12s; }
+.studio-collapse[open] > .studio-collapse-sum::after { transform: rotate(45deg) translate(-0.1rem, -0.1rem); }
+.studio-collapse > .studio-collapse-sum:focus-visible { outline: var(--pen-2) solid var(--action); outline-offset: 2px; }
+.studio-collapse[open] > .studio-collapse-sum { margin-bottom: 0.5rem; }
+.studio-collapse-body > :last-child { margin-bottom: 0; }
+/* Fields in a tidy grid: label above, input under it, every box the same width and height */
+.studio-collapse .studio-field { margin: 0; min-width: 0; align-content: start; }
+.studio-collapse .studio-field > span { font-weight: 600; font-size: var(--fs-sm); line-height: 1.25; }
+.studio-collapse .studio-input { width: 100%; box-sizing: border-box; min-height: 2.25rem; }
+.studio-collapse .studio-field + .studio-field, .studio-collapse .studio-field + .studio-keyrow { margin-top: 0.75rem; }
+.studio-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.75rem; margin: 0 0 0.75rem; }
+.studio-fields-2 { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.studio-keyrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem; align-items: end; margin-top: 0.75rem; }
+.studio-keyrow .studio-field { margin: 0; }
+.studio-keyrow-btns { display: flex; gap: 0.4rem; min-height: 2.25rem; align-items: stretch; }
+.studio-keyrow-btns .studio-btn { white-space: nowrap; }
+@media (max-width: 420px) { .studio-keyrow { grid-template-columns: minmax(0, 1fr); } }
+.studio-subhead { margin: 1rem 0 0.5rem; padding-top: 0.75rem; border-top: var(--pen-1) solid var(--grid); }
+.studio-connectai-list { list-style: none; margin: 0.5rem 0 0.75rem; padding: 0; display: grid; gap: 0.5rem; }
+.studio-connectai-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.75rem; padding: 0.5rem 0.65rem; border: var(--pen-1) solid var(--grid); border-radius: var(--radius); }
+.studio-connectai-head { flex: 1 1 10rem; min-width: 0; }
+.studio-connectai-card, .studio-connectai-confirm { flex: 1 1 100%; }
+
+/* Feature pages (0.10 UI): the side panel holds a short summary + Configure; the full settings live on their own page (#/ai, #/machines, #/standards) */
+.studio-feature .studio-h { display: flex; align-items: center; gap: 0.4rem; }
+.studio-feature .studio-h i { color: var(--layer); }
+.studio-feature p { color: var(--ink-2); }
+.studio-page { max-width: 56rem; margin: 0 auto; padding: 1.25rem 1.25rem 2rem; }
+.studio-page[hidden], .studio-pg[hidden] { display: none; }
+.studio-back { margin-bottom: 0.75rem; }
+.studio-pg-title { font-size: var(--fs-lg, 1.4rem); margin-bottom: 0.4rem; }
+.studio-pg-stack { display: grid; gap: 1rem; margin-top: 0.75rem; }
+html.studio-on-page .studio-main { display: none; }
+.studio-page:focus { outline: none; }
+.studio-fields > .studio-field, .studio-fields-2 > .studio-field { align-content: end; }

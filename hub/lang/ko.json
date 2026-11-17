@@ -768,5 +768,11 @@
   "activity.export.txt": "텍스트 내보내기",
   "activity.undo": "실행 취소 단계: {step}",
   "activity.file": "파일: {file}",
-  "window.machines.send.files": "파일 {n}개 ({kb} KB), 순서대로 전송"
+  "window.machines.send.files": "파일 {n}개 ({kb} KB), 순서대로 전송",
+  "page.back": "Studio로 돌아가기",
+  "feature.configure": "구성",
+  "feature.ai.title": "Studio의 AI",
+  "feature.ai.body": "모든 앱의 질문 상자에서 직접 사용하는 AI 모델을 쓰고, 이미 사용 중인 AI 앱을 연결하며, 어시스턴트가 한 작업을 확인합니다.",
+  "feature.machines.body": "네트워크에 연결된 3D 프린터, CNC 기계 또는 레이저 절단기로 작업을 보낼 수 있습니다. 여기에서 기계를 추가, 테스트, 제거합니다.",
+  "feature.standards.body": "회사의 사내 규칙을 한 번만 작성해 두면 됩니다: 도면층과 파일 이름, 문구, 도면이 통과해야 하는 검사 항목. 연결된 모든 AI가 이 규칙을 따릅니다."
 }

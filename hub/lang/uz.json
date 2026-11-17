@@ -783,5 +783,11 @@
   "activity.export.txt": "Matn sifatida eksport",
   "activity.undo": "Qadamni bekor qilish: {step}",
   "activity.file": "Fayl: {file}",
-  "window.machines.send.files": "{n} ta fayl ({kb} KB), ketma-ket yuborildi"
+  "window.machines.send.files": "{n} ta fayl ({kb} KB), ketma-ket yuborildi",
+  "page.back": "Studioga qaytish",
+  "feature.configure": "Sozlash",
+  "feature.ai.title": "Studioda AI",
+  "feature.ai.body": "Har bir ilovaning Soʻrov maydonida oʻz AI modelingizdan foydalaning, allaqachon ishlatayotgan AI ilovangizni ulang va yordamchilaringiz nima qilganini koʻring.",
+  "feature.machines.body": "Tarmogʻingizdagi 3D printer, CNC stanok yoki lazer kesish qurilmasiga ish yuboring. Mashinalarni shu yerda qoʻshing, sinang va oʻchiring.",
+  "feature.standards.body": "Firmangizning ichki qoidalari bir marta yoziladi: qatlam va fayl nomlari, matn va chizma oʻtishi shart boʻlgan tekshiruvlar. Ulangan har bir AI ularga amal qiladi."
 }

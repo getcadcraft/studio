@@ -272,7 +272,7 @@ for (const f of HUB_FILES) copy(path.join(STUDIO, 'hub', f), path.join(DEST, 'hu
 for (const f of fs.readdirSync(path.join(STUDIO, 'hub/live')).filter((f) => /\.(js|css)$/.test(f))) copy(path.join(STUDIO, 'hub/live', f), path.join(DEST, 'hub/live', f));
 copy(path.join(PUB, 'assets/js/host.js'), path.join(DEST, 'hub/host.js'));
 copy(path.join(PUB, '../tools/mcp/clients.mjs'), path.join(DEST, 'hub/clients.mjs'));
-copy(path.join(PUB, 'assets/js/ai-byok.js'), path.join(DEST, 'hub/byok.mjs'));   // AC.11: the engine's limits and defaults, beside the key card
+copy(path.join(PUB, '../tools/mcp/byok.mjs'), path.join(DEST, 'hub/byok.mjs'));   // AC.11: the engine's limits and defaults, beside the key card (0.10: the shell's copy is gone; the app-side client is the own-ai-key add-on)
 copy(path.join(PUB, 'assets/js/ai-activity.js'), path.join(DEST, 'hub/ai-activity.js'));   // AC.13: the one log, beside its card
 copy(path.join(PUB, 'assets/js/ai-standards.js'), path.join(DEST, 'hub/ai-standards.js'));   // AC.14: the one cleaner, beside the card
 copy(path.join(PUB, '../tools/mcp/packs.mjs'), path.join(DEST, 'hub/packs.mjs'));              // skill packs + starters + the firm's standards, mounted on the hub's dispatcher

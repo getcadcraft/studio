@@ -783,5 +783,11 @@
   "activity.export.txt": "Text exportieren",
   "activity.undo": "Rückgängig-Schritt: {step}",
   "activity.file": "Datei: {file}",
-  "window.machines.send.files": "{n} Dateien ({kb} KB), nacheinander gesendet"
+  "window.machines.send.files": "{n} Dateien ({kb} KB), nacheinander gesendet",
+  "page.back": "Zurück zu Studio",
+  "feature.configure": "Konfigurieren",
+  "feature.ai.title": "KI in Studio",
+  "feature.ai.body": "Verwenden Sie Ihr eigenes KI-Modell im Fragefeld jeder App, verbinden Sie die KI-App, die Sie bereits nutzen, und sehen Sie, was Ihre Assistenten getan haben.",
+  "feature.machines.body": "Senden Sie einen Auftrag an einen 3D-Drucker, eine CNC-Maschine oder einen Laserschneider in Ihrem Netzwerk. Hier hinzufügen, testen und entfernen Sie Ihre Maschinen.",
+  "feature.standards.body": "Die Hausregeln Ihrer Firma, einmal festgelegt: Layer- und Dateinamen, Formulierungen und die Prüfungen, die eine Zeichnung bestehen muss. Jede verbundene KI hält sich daran."
 }

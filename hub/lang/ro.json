@@ -798,5 +798,11 @@
   "activity.export.txt": "Export text",
   "activity.undo": "Pas de anulat: {step}",
   "activity.file": "Fișier: {file}",
-  "window.machines.send.files": "{n} fișiere ({kb} KB), trimise una după alta"
+  "window.machines.send.files": "{n} fișiere ({kb} KB), trimise una după alta",
+  "page.back": "Înapoi la Studio",
+  "feature.configure": "Configurare",
+  "feature.ai.title": "AI în Studio",
+  "feature.ai.body": "Folosiți propriul model AI în caseta Ask din fiecare aplicație, conectați aplicația AI pe care o aveți deja și vedeți ce au făcut asistenții.",
+  "feature.machines.body": "Trimiteți o lucrare la o imprimantă 3D, o mașină CNC sau un aparat de tăiat cu laser din rețea. Adăugați, testați și eliminați aici mașinile.",
+  "feature.standards.body": "Regulile interne ale firmei, scrise o singură dată: denumirile straturilor și ale fișierelor, formularea și verificările pe care trebuie să le treacă un desen. Orice AI conectat le respectă."
 }

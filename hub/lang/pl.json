@@ -811,5 +811,11 @@
   "activity.export.txt": "Eksportuj tekst",
   "activity.undo": "Krok do cofnięcia: {step}",
   "activity.file": "Plik: {file}",
-  "window.machines.send.files": "{n} plików ({kb} KB), wysyłanych jeden po drugim"
+  "window.machines.send.files": "{n} plików ({kb} KB), wysyłanych jeden po drugim",
+  "page.back": "Wróć do Studio",
+  "feature.configure": "Konfiguruj",
+  "feature.ai.title": "AI w Studio",
+  "feature.ai.body": "Używaj własnego modelu AI w polu Zapytaj w każdej aplikacji, podłącz używaną już aplikację AI i sprawdź, co wykonali asystenci.",
+  "feature.machines.body": "Wyślij zadanie do drukarki 3D, maszyny CNC lub lasera tnącego w sieci. Dodaj, przetestuj i usuń maszyny tutaj.",
+  "feature.standards.body": "Wewnętrzne reguły firmy, zapisane raz: nazwy warstw i plików, sformułowania oraz kontrole, które musi przejść rysunek. Każde podłączone AI się do nich stosuje."
 }

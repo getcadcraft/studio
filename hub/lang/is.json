@@ -783,5 +783,11 @@
   "activity.export.txt": "Flytja út texta",
   "activity.undo": "Afturkalla skref: {step}",
   "activity.file": "Skrá: {file}",
-  "window.machines.send.files": "{n} skrár ({kb} KB), sendar hver á eftir annarri"
+  "window.machines.send.files": "{n} skrár ({kb} KB), sendar hver á eftir annarri",
+  "page.back": "Aftur í Studio",
+  "feature.configure": "Stilla",
+  "feature.ai.title": "AI í Studio",
+  "feature.ai.body": "Notaðu þitt eigið AI-líkan í spurningareitnum í öllum forritum, tengdu AI-forritið sem þú notar nú þegar og sjáðu hvað aðstoðarmenn þínir gerðu.",
+  "feature.machines.body": "Sendu verk í þrívíddarprentara, CNC-vél eða leysiskurðarvél á netinu þínu. Bættu við, prófaðu og fjarlægðu vélarnar þínar hér.",
+  "feature.standards.body": "Reglur fyrirtækisins þíns, skrifaðar einu sinni: heiti laga og skráa, orðalag og athuganirnar sem teikning verður að standast. Sérhvert tengt AI fylgir þeim."
 }

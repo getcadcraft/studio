@@ -783,5 +783,11 @@
   "activity.export.txt": "Vie tekstinä",
   "activity.undo": "Kumoa vaihe: {step}",
   "activity.file": "Tiedosto: {file}",
-  "window.machines.send.files": "{n} tiedostoa ({kb} KB), lähetetään yksi kerrallaan"
+  "window.machines.send.files": "{n} tiedostoa ({kb} KB), lähetetään yksi kerrallaan",
+  "page.back": "Takaisin Studioon",
+  "feature.configure": "Määritä",
+  "feature.ai.title": "Tekoäly Studiossa",
+  "feature.ai.body": "Käytä omaa tekoälymallia jokaisen sovelluksen Kysy-kentässä, yhdistä jo käyttämäsi tekoälysovellus ja katso, mitä avustajat ovat tehneet.",
+  "feature.machines.body": "Lähetä työ 3D-tulostimelle, CNC-koneelle tai laserleikkurille verkossasi. Lisää, testaa ja poista koneet täältä.",
+  "feature.standards.body": "Yrityksen talosäännöt kirjoitettuna kerran: taso- ja tiedostonimet, sanamuodot ja tarkistukset, jotka piirustuksen on läpäistävä. Jokainen yhdistetty tekoäly noudattaa niitä."
 }

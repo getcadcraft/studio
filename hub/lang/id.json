@@ -768,5 +768,11 @@
   "activity.export.txt": "Ekspor teks",
   "activity.undo": "Langkah urungkan: {step}",
   "activity.file": "File: {file}",
-  "window.machines.send.files": "{n} file ({kb} KB), dikirim satu per satu"
+  "window.machines.send.files": "{n} file ({kb} KB), dikirim satu per satu",
+  "page.back": "Kembali ke Studio",
+  "feature.configure": "Konfigurasi",
+  "feature.ai.title": "AI di Studio",
+  "feature.ai.body": "Gunakan model AI Anda sendiri di kotak Tanya pada setiap aplikasi, hubungkan aplikasi AI yang sudah Anda gunakan, dan lihat apa saja yang dilakukan asisten Anda.",
+  "feature.machines.body": "Kirim pekerjaan ke printer 3D, mesin CNC, atau pemotong laser di jaringan Anda. Tambah, uji, dan hapus mesin Anda di sini.",
+  "feature.standards.body": "Aturan internal firma Anda, ditulis sekali: nama layer dan nama file, pilihan kata, dan pemeriksaan yang harus dilalui sebuah gambar. Setiap AI yang terhubung akan mengikutinya."
 }

@@ -783,5 +783,11 @@
   "activity.export.txt": "Exporter en texte",
   "activity.undo": "Annuler l'étape : {step}",
   "activity.file": "Fichier : {file}",
-  "window.machines.send.files": "{n} fichiers ({kb} KB), envoyés successivement"
+  "window.machines.send.files": "{n} fichiers ({kb} KB), envoyés successivement",
+  "page.back": "Retour à Studio",
+  "feature.configure": "Configurer",
+  "feature.ai.title": "IA dans Studio",
+  "feature.ai.body": "Utilisez votre propre modèle d'IA dans la zone Demander de chaque application, connectez l'application d'IA que vous utilisez déjà et consultez ce que vos assistants ont fait.",
+  "feature.machines.body": "Envoyez une tâche à une imprimante 3D, une machine CNC ou une découpeuse laser de votre réseau. Ajoutez, testez et retirez vos machines ici.",
+  "feature.standards.body": "Les règles internes de votre cabinet, rédigées une seule fois : noms de calques et de fichiers, formulations et contrôles qu'un dessin doit respecter. Toutes les IA connectées les suivent."
 }

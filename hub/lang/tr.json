@@ -783,5 +783,11 @@
   "activity.export.txt": "Metin olarak dışa aktar",
   "activity.undo": "Geri alma adımı: {step}",
   "activity.file": "Dosya: {file}",
-  "window.machines.send.files": "{n} dosya ({kb} KB), birbiri ardına gönderiliyor"
+  "window.machines.send.files": "{n} dosya ({kb} KB), birbiri ardına gönderiliyor",
+  "page.back": "Studio'ya dön",
+  "feature.configure": "Yapılandır",
+  "feature.ai.title": "Studio'da yapay zekâ",
+  "feature.ai.body": "Her uygulamanın Sor kutusunda kendi yapay zekâ modelinizi kullanın, zaten kullandığınız yapay zekâ uygulamasını bağlayın ve asistanlarınızın neler yaptığını görün.",
+  "feature.machines.body": "Ağınızdaki bir 3B yazıcıya, CNC makinesine veya lazer kesiciye iş gönderin. Makinelerinizi burada ekleyin, test edin ve kaldırın.",
+  "feature.standards.body": "Firmanızın iç kuralları bir kez yazılır: katman ve dosya adları, ifadeler ve bir çizimin geçmesi gereken denetimler. Bağlı her yapay zekâ bu kurallara uyar."
 }

@@ -1181,6 +1181,12 @@ wireSettings();
 wireHelp();
 wireOffline();
 wireAssistants();
+// 0.10 UI: collapsible cards remember open/closed (per card, this computer only)
+for (const d of document.querySelectorAll('details[data-collapse]')) {
+  const k = 'cadcraft.studio.collapse.' + d.dataset.collapse;
+  try { if (localStorage.getItem(k) === '0') d.open = false; } catch { /* storage blocked: stays open */ }
+  d.addEventListener('toggle', () => { try { localStorage.setItem(k, d.open ? '1' : '0'); } catch { /* ignore */ } });
+}
 { const ac = mountActivity({ box: $('[data-activity]'), log: activityLog, t, el }); ac.render(); }   // AC.13: what the assistants did
 if (desk && desk.ask) { const box = $('[data-askkey]'); box.hidden = false; mountAskKey({ box: $('[data-askkey-body]'), desk, t, el, say }).render(); serveAsk({ channel, desk }); }   // AC.11: the key in the credential store, the Ask box on it
 { const sc = mountStandards({ box: $('[data-standards]'), t, el, say }); sc.render(); }   // AC.14: the firm's house rules, for every AI
@@ -1204,6 +1210,24 @@ wireLaunch();
 startCloud();
 const join = wireJoin({ doc, win: window, desk, onAccountChange, t, say, openApp, askApp, appBy, apps: APPS });
 if (!desk || !desk.account) $('[data-account]').hidden = true;
+// 0.10 UI: feature pages. The side panel's Configure links go to #/ai, #/machines, #/standards; #/ shows the hub again.
+{
+  const page = $('[data-page]'), pgs = [...doc.querySelectorAll('[data-pg]')];
+  const show = () => {
+    const name = (location.hash.match(/^#\/(\w+)$/) || [])[1] || '';
+    const pg = pgs.find((p) => p.dataset.pg === name);
+    const usable = pg && [...pg.querySelectorAll('.studio-pg-stack > *')].some((c) => !c.hidden);   // a page whose features this computer lacks is not shown
+    for (const p of pgs) p.hidden = p !== pg || !usable;
+    page.hidden = !usable;
+    doc.documentElement.classList.toggle('studio-on-page', !!usable);
+    if (usable) { page.focus({ preventScroll: true }); window.scrollTo(0, 0); }
+  };
+  window.addEventListener('hashchange', show);
+  show();
+  // The summary card for a feature this computer cannot run is not offered
+  const feat = (n) => doc.querySelector('[data-feature="' + n + '"]');
+  if (!(desk && desk.machines) && feat('machines')) feat('machines').hidden = true;
+}
 doc.documentElement.classList.add('studio-ready');
 
 // For tests and add-ons: what the hub decided, never the person's files.

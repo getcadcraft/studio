@@ -798,5 +798,11 @@
   "activity.export.txt": "ייצוא טקסט",
   "activity.undo": "ביטול צעד: {step}",
   "activity.file": "קובץ: {file}",
-  "window.machines.send.files": "{n} קבצים ({kb} KB), נשלחו זה אחר זה"
+  "window.machines.send.files": "{n} קבצים ({kb} KB), נשלחו זה אחר זה",
+  "page.back": "חזרה ל-Studio",
+  "feature.configure": "הגדרה",
+  "feature.ai.title": "AI ב-Studio",
+  "feature.ai.body": "השתמשו במודל ה-AI שלכם בתיבת השאלה של כל אפליקציה, חברו את אפליקציית ה-AI שכבר אתם משתמשים בה, וראו מה העוזרים שלכם עשו.",
+  "feature.machines.body": "שלחו עבודה למדפסת תלת-ממד, למכונת CNC או למכונת חיתוך בלייזר ברשת שלכם. הוסיפו, בדקו והסירו את המכונות שלכם כאן.",
+  "feature.standards.body": "כללי הבית של המשרד, כתובים פעם אחת: שמות שכבות וקבצים, ניסוח והבדיקות שכל שרטוט חייב לעבור. כל ה-AI המחובר פועל לפיהם."
 }

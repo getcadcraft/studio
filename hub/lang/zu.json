@@ -783,5 +783,11 @@
   "activity.export.txt": "Khipha umbhalo",
   "activity.undo": "Isinyathelo sokuhlehlisa: {step}",
   "activity.file": "Ifayela: {file}",
-  "window.machines.send.files": "{n} amafayela ({kb} KB), athunyelwa ngolandelanayo"
+  "window.machines.send.files": "{n} amafayela ({kb} KB), athunyelwa ngolandelanayo",
+  "page.back": "Buyela ku-Studio",
+  "feature.configure": "Lungiselela",
+  "feature.ai.title": "I-AI ku-Studio",
+  "feature.ai.body": "Sebenzisa imodeli yakho ye-AI ebhokisini lombuzo kwi-app ngayinye, xhuma i-app ye-AI osuyisebenzisayo, bese ubona okwenziwe ngabasizi bakho.",
+  "feature.machines.body": "Thumela umsebenzi kumshini wokuprinta ka-3D, kumshini we-CNC noma kumsiki we-laser kunethiwekhi yakho. Engeza, hlola bese ususa imishini yakho lapha.",
+  "feature.standards.body": "Imithetho yenkampani yakho, ibhalwa kanye nje: amagama ezingqimba namafayela, umbhalo kanye nokuhlola okufanele udwebo ludlule. Yonke i-AI exhunyiwe iyawulandela."
 }

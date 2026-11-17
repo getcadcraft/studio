@@ -783,5 +783,11 @@
   "activity.export.txt": "I-export ang text",
   "activity.undo": "Hakbang sa Undo: {step}",
   "activity.file": "File: {file}",
-  "window.machines.send.files": "{n} na file ({kb} KB), ipinapadala nang sunod-sunod"
+  "window.machines.send.files": "{n} na file ({kb} KB), ipinapadala nang sunod-sunod",
+  "page.back": "Bumalik sa Studio",
+  "feature.configure": "I-configure",
+  "feature.ai.title": "AI sa Studio",
+  "feature.ai.body": "Gamitin ang sarili mong AI model sa Ask box ng bawat app, ikonekta ang AI app na gamit mo na, at tingnan kung ano ang ginawa ng iyong mga assistant.",
+  "feature.machines.body": "Magpadala ng job sa 3D printer, CNC machine o laser cutter sa iyong network. Magdagdag, mag-test at mag-alis ng mga machine dito.",
+  "feature.standards.body": "Ang mga house rule ng iyong firm, isinulat nang minsan lang: layer at file names, wording, at mga check na dapat pasahan ng drawing. Sinusunod ito ng bawat konektadong AI."
 }

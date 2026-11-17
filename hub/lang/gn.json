@@ -781,5 +781,11 @@
   "activity.export.txt": "Exportar texto",
   "activity.undo": "Paso para deshacer: {step}",
   "activity.file": "Archivo: {file}",
-  "window.machines.send.files": "{n} archivos ({kb} KB), enviados uno tras otro"
+  "window.machines.send.files": "{n} archivos ({kb} KB), enviados uno tras otro",
+  "page.back": "Volver a Studio",
+  "feature.configure": "Configurar",
+  "feature.ai.title": "AI en Studio",
+  "feature.ai.body": "Eipuru ne propio modelo de AI ko cuadro Ask cada aplicación-pe, ejunta ko app de AI reipurúva ha ehecha mba'éichapa oñemoĩ ne asistentes.",
+  "feature.machines.body": "Emondo peteĩ tarea 3D printer, CNC machine térã laser cutter-pe ne red-pe. Emoĩ, emboguejy ha emboguejy ko'ápe ne máquinas.",
+  "feature.standards.body": "Ne empresa-pe reglas, peteĩ jey eñeñandu: nombres de capa ha archivo, redacción ha chequeos ojehupytýva plano-pe. Opavave AI conectado ojapóta ko'ã reglas."
 }

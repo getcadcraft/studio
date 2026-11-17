@@ -797,5 +797,11 @@
   "activity.export.txt": "Export text",
   "activity.undo": "Undo step: {step}",
   "activity.file": "File: {file}",
-  "window.machines.send.files": "{n} files ({kb} KB), sent one after the other"
+  "window.machines.send.files": "{n} files ({kb} KB), sent one after the other",
+  "page.back": "Back to Studio",
+  "feature.configure": "Configure",
+  "feature.ai.title": "AI in Studio",
+  "feature.ai.body": "Use your own AI model in the Ask box of every app, connect the AI app you already use, and see what your assistants did.",
+  "feature.machines.body": "Send a job to a 3D printer, CNC machine or laser cutter on your network. Add, test and remove your machines here.",
+  "feature.standards.body": "Your firm's house rules, written once: layer and file names, wording and the checks a drawing must pass. Every connected AI follows them."
 }

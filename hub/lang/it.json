@@ -783,5 +783,11 @@
   "activity.export.txt": "Esporta testo",
   "activity.undo": "Passo da annullare: {step}",
   "activity.file": "File: {file}",
-  "window.machines.send.files": "{n} file ({kb} KB), inviati uno dopo l'altro"
+  "window.machines.send.files": "{n} file ({kb} KB), inviati uno dopo l'altro",
+  "page.back": "Torna a Studio",
+  "feature.configure": "Configura",
+  "feature.ai.title": "AI in Studio",
+  "feature.ai.body": "Usare il proprio modello AI nella casella Chiedi di ogni app, collegare l'app AI che già si usa e vedere cosa hanno fatto gli assistenti.",
+  "feature.machines.body": "Inviare un lavoro a una stampante 3D, a una macchina CNC o a una macchina per taglio laser sulla propria rete. Aggiungere, testare e rimuovere qui le proprie macchine.",
+  "feature.standards.body": "Le regole interne dello studio, scritte una volta sola: nomi di layer e di file, terminologia e i controlli che un disegno deve superare. Ogni AI collegata le segue."
 }

@@ -783,5 +783,11 @@
   "activity.export.txt": "Exporta text",
   "activity.undo": "Desfés: {step}",
   "activity.file": "Fitxer: {file}",
-  "window.machines.send.files": "{n} fitxers ({kb} KB), enviats un darrere l'altre"
+  "window.machines.send.files": "{n} fitxers ({kb} KB), enviats un darrere l'altre",
+  "page.back": "Torna a Studio",
+  "feature.configure": "Configura",
+  "feature.ai.title": "IA a Studio",
+  "feature.ai.body": "Utilitzeu el vostre propi model d'IA a la caixa de preguntes de cada aplicació, connecteu l'aplicació d'IA que ja useu i vegeu què han fet els vostres assistents.",
+  "feature.machines.body": "Envieu una tasca a una impressora 3D, una màquina CNC o una talladora làser de la vostra xarxa. Afegiu, proveu i suprimiu aquí les vostres màquines.",
+  "feature.standards.body": "Les normes internes de la vostra empresa, escrites una sola vegada: noms de capes i de fitxers, redacció i les comprovacions que ha de superar un dibuix. Cada IA connectada les segueix."
 }

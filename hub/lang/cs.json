@@ -802,5 +802,11 @@
   "activity.export.txt": "Exportovat text",
   "activity.undo": "Krok zpět: {step}",
   "activity.file": "Soubor: {file}",
-  "window.machines.send.files": "Počet souborů: {n} ({kb} KB), odesílané jeden za druhým"
+  "window.machines.send.files": "Počet souborů: {n} ({kb} KB), odesílané jeden za druhým",
+  "page.back": "Zpět do Studia",
+  "feature.configure": "Nastavit",
+  "feature.ai.title": "AI ve Studiu",
+  "feature.ai.body": "Používejte vlastní model AI v poli Zeptat se ve všech aplikacích, připojte aplikaci AI, kterou už používáte, a zobrazte, co vaši asistenti udělali.",
+  "feature.machines.body": "Odešlete úlohu na 3D tiskárnu, CNC stroj nebo laserový řezač ve vaší síti. Přidejte, otestujte a odeberte zde své stroje.",
+  "feature.standards.body": "Pravidla vaší firmy, zapsaná jednou provždy: názvy vrstev a souborů, znění a kontroly, které musí výkres splnit. Každá připojená AI se jimi řídí."
 }

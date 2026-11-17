@@ -798,5 +798,11 @@
   "activity.export.txt": "Izvezi tekst",
   "activity.undo": "Korak za poništavanje: {step}",
   "activity.file": "Datoteka: {file}",
-  "window.machines.send.files": "Broj datoteka: {n} ({kb} KB), šalju se jedna za drugom"
+  "window.machines.send.files": "Broj datoteka: {n} ({kb} KB), šalju se jedna za drugom",
+  "page.back": "Natrag u Studio",
+  "feature.configure": "Konfiguriraj",
+  "feature.ai.title": "AI u Studiju",
+  "feature.ai.body": "Upotrijebite vlastiti AI model u okviru Pitaj u svakoj aplikaciji, povežite AI aplikaciju koju već koristite i pogledajte što su vaši pomoćnici radili.",
+  "feature.machines.body": "Pošaljite posao 3D pisaču, CNC stroju ili laserskom rezaču na vašoj mreži. Dodajte, testirajte i uklonite svoje strojeve ovdje.",
+  "feature.standards.body": "Interna pravila vaše tvrtke, zapisana jednom: nazivi slojeva i datoteka, formulacije i provjere koje crtež mora proći. Svaki povezani AI ih slijedi."
 }

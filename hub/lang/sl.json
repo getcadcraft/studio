@@ -813,5 +813,11 @@
   "activity.export.txt": "Izvozi besedilo",
   "activity.undo": "Korak razveljavitve: {step}",
   "activity.file": "Datoteka: {file}",
-  "window.machines.send.files": "Datotek: {n} ({kb} KB), poslano zaporedoma"
+  "window.machines.send.files": "Datotek: {n} ({kb} KB), poslano zaporedoma",
+  "page.back": "Nazaj v Studio",
+  "feature.configure": "Nastavi",
+  "feature.ai.title": "AI v Studio",
+  "feature.ai.body": "Uporabite svoj model AI v polju Ask v vsaki aplikaciji, povežite aplikacijo AI, ki jo že uporabljate, in si oglejte, kaj so vaši pomočniki naredili.",
+  "feature.machines.body": "Pošljite opravilo na 3D-tiskalnik, CNC-stroj ali laserski rezalnik v vašem omrežju. Tukaj dodajte, preizkusite in odstranite svoje stroje.",
+  "feature.standards.body": "Hišna pravila vašega podjetja, zapisana enkrat: imena slojev in datotek, besedilo ter preverjanja, ki jih mora risba opraviti. Vsak povezani AI jim sledi."
 }

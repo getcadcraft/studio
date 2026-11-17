@@ -783,5 +783,11 @@
   "activity.export.txt": "ጽሑፍ ላክ",
   "activity.undo": "ቀልብስ ደረጃ: {step}",
   "activity.file": "ፋይል: {file}",
-  "window.machines.send.files": "{n} ፋይል ({kb} KB)፣ አንድ በአንድ ተላኩ"
+  "window.machines.send.files": "{n} ፋይል ({kb} KB)፣ አንድ በአንድ ተላኩ",
+  "page.back": "ወደ Studio ተመለስ",
+  "feature.configure": "አዋቅር",
+  "feature.ai.title": "በStudio ውስጥ AI",
+  "feature.ai.body": "በእያንዳንዱ መተግበሪያ የጥያቄ ሳጥን ውስጥ የራስዎን AI ሞዴል ይጠቀሙ፣ አስቀድመው የሚጠቀሙበትን AI መተግበሪያ ያገናኙ፣ እና ረዳቶችዎ ያደረጉትን ይመልከቱ።",
+  "feature.machines.body": "በአውታረ መረብዎ ላይ ላለ 3D አታሚ፣ CNC ማሽን ወይም ሌዘር መቁረጫ ስራ ይላኩ። ማሽኖችዎን እዚህ ያክሉ፣ ይሞክሩ እና ያስወግዱ።",
+  "feature.standards.body": "የድርጅትዎ የውስጥ ህጎች፣ አንድ ጊዜ ተጽፈው የተቀመጡ፦ የንብርብር እና የፋይል ስሞች፣ የአጻጻፍ ደንቦች እና ንድፍ ማለፍ ያለበት ፍተሻዎች። የተገናኘ እያንዳንዱ AI ይከተላቸዋል።"
 }

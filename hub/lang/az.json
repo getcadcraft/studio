@@ -783,5 +783,11 @@
   "activity.export.txt": "Mətn ixrac et",
   "activity.undo": "Addımı geri qaytar: {step}",
   "activity.file": "Fayl: {file}",
-  "window.machines.send.files": "{n} fayl ({kb} KB), biri-birinin ardınca göndərilir"
+  "window.machines.send.files": "{n} fayl ({kb} KB), biri-birinin ardınca göndərilir",
+  "page.back": "Studio-ya qayıt",
+  "feature.configure": "Konfiqurasiya et",
+  "feature.ai.title": "Studio-da AI",
+  "feature.ai.body": "Hər tətbiqin Sual qutusunda öz AI modelinizdən istifadə edin, artıq istifadə etdiyiniz AI tətbiqini qoşun və köməkçilərinizin nə etdiyini görün.",
+  "feature.machines.body": "Şəbəkənizdəki 3D printerə, CNC maşınına və ya lazer kəsicisinə iş göndərin. Maşınlarınızı burada əlavə edin, sınayın və silin.",
+  "feature.standards.body": "Firmanızın daxili qaydaları bir dəfə yazılır: qat və fayl adları, mətn üslubu və çertyojun keçməli olduğu yoxlamalar. Qoşulmuş hər AI bunlara əməl edir."
 }

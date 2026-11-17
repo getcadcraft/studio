@@ -783,5 +783,11 @@
   "activity.export.txt": "متن صادرول",
   "activity.undo": "بېرته کولو ګام: {step}",
   "activity.file": "فایل: {file}",
-  "window.machines.send.files": "{n} فایلونه ({kb} KB)، یو په بل وروسته لېږل کېږي"
+  "window.machines.send.files": "{n} فایلونه ({kb} KB)، یو په بل وروسته لېږل کېږي",
+  "page.back": "Studio ته بېرته",
+  "feature.configure": "امستل",
+  "feature.ai.title": "Studio کې AI",
+  "feature.ai.body": "د هرې اپلیکېشن د Ask ساحې کې خپل AI ماډل وکاروئ، هغه AI اپلیکېشن وصل کړئ چې دمخه کاروئ، او وګورئ چې ستاسو مرستندویانو څه کړي دي.",
+  "feature.machines.body": "ستاسو په شبکه کې د 3D پرنټر، CNC ماشین یا لیزر پرې کوونکي ته کار ولېږئ. دلته خپل ماشینونه اضافه کړئ، وازمویئ او لرې کړئ.",
+  "feature.standards.body": "د شرکت خپلې قواعد یو ځل ولیکئ: د لایې او فایل نومونه، عبارتونه او هغه کتنې چې نقشه باید تېرې کړي. هر وصل شوی AI دا قواعد تعقیبوي."
 }

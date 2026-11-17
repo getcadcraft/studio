@@ -768,5 +768,11 @@
   "activity.export.txt": "テキストを書き出し",
   "activity.undo": "取り消し手順: {step}",
   "activity.file": "ファイル: {file}",
-  "window.machines.send.files": "{n}個のファイル（{kb} KB）を順番に送信"
+  "window.machines.send.files": "{n}個のファイル（{kb} KB）を順番に送信",
+  "page.back": "Studioに戻る",
+  "feature.configure": "設定",
+  "feature.ai.title": "StudioのAI",
+  "feature.ai.body": "すべてのアプリの「質問」ボックスで、お使いのAIモデルを利用できます。すでに使っているAIアプリを接続し、アシスタントが行った操作を確認できます。",
+  "feature.machines.body": "ネットワーク上の3Dプリンター、CNC機械、レーザーカッターにジョブを送信します。ここで機械の追加、テスト、削除を行えます。",
+  "feature.standards.body": "事務所の社内ルールを一度まとめて定義します。レイヤー名とファイル名、表記、図面が満たすべきチェック項目が対象です。接続されているすべてのAIがこのルールに従います。"
 }

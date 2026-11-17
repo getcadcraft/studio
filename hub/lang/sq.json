@@ -783,5 +783,11 @@
   "activity.export.txt": "Eksporto tekst",
   "activity.undo": "Zhbëj hapin: {step}",
   "activity.file": "Skedari: {file}",
-  "window.machines.send.files": "{n} skedarë ({kb} KB), të dërguar njëri pas tjetrit"
+  "window.machines.send.files": "{n} skedarë ({kb} KB), të dërguar njëri pas tjetrit",
+  "page.back": "Kthehu te Studio",
+  "feature.configure": "Konfiguro",
+  "feature.ai.title": "AI në Studio",
+  "feature.ai.body": "Përdor modelin tënd AI në kutinë Pyet të çdo aplikacioni, lidh aplikacionin AI që përdor tashmë dhe shiko çfarë bënë asistentët e tu.",
+  "feature.machines.body": "Dërgo një punë te një printer 3D, makinë CNC ose prerës me lazer në rrjetin tënd. Shto, testo dhe hiq makinat e tua këtu.",
+  "feature.standards.body": "Rregullat e shtëpisë së firmës tënde, të shkruara një herë: emrat e shtresave dhe të skedarëve, formulimet dhe kontrollet që një vizatim duhet të kalojë. Çdo AI i lidhur i ndjek ato."
 }

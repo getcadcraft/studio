@@ -783,5 +783,11 @@
   "activity.export.txt": "Exportar texto",
   "activity.undo": "Passo de desfazer: {step}",
   "activity.file": "Arquivo: {file}",
-  "window.machines.send.files": "{n} arquivos ({kb} KB), enviados um após o outro"
+  "window.machines.send.files": "{n} arquivos ({kb} KB), enviados um após o outro",
+  "page.back": "Voltar ao Studio",
+  "feature.configure": "Configurar",
+  "feature.ai.title": "IA no Studio",
+  "feature.ai.body": "Use seu próprio modelo de IA na caixa Perguntar de cada aplicativo, conecte o app de IA que você já usa e veja o que seus assistentes fizeram.",
+  "feature.machines.body": "Envie um trabalho para uma impressora 3D, máquina CNC ou cortadora a laser na sua rede. Adicione, teste e remova suas máquinas aqui.",
+  "feature.standards.body": "As regras internas do seu escritório, escritas uma vez só: nomes de camadas e de arquivos, redação e as verificações que um desenho deve passar. Toda IA conectada as segue."
 }

@@ -783,5 +783,11 @@
   "activity.export.txt": "Exportera text",
   "activity.undo": "Ångra steg: {step}",
   "activity.file": "Fil: {file}",
-  "window.machines.send.files": "{n} filer ({kb} KB), skickade en efter en"
+  "window.machines.send.files": "{n} filer ({kb} KB), skickade en efter en",
+  "page.back": "Tillbaka till Studio",
+  "feature.configure": "Konfigurera",
+  "feature.ai.title": "AI i Studio",
+  "feature.ai.body": "Använd din egen AI-modell i frågerutan i varje app, anslut den AI-app du redan använder och se vad dina assistenter gjorde.",
+  "feature.machines.body": "Skicka ett jobb till en 3D-skrivare, CNC-maskin eller laserskärare i ditt nätverk. Lägg till, testa och ta bort dina maskiner här.",
+  "feature.standards.body": "Ditt företags regler, skrivna en gång: lager- och filnamn, formuleringar och de kontroller en ritning måste klara. Varje ansluten AI följer dem."
 }

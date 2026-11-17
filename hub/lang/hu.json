@@ -783,5 +783,11 @@
   "activity.export.txt": "Szöveg exportálása",
   "activity.undo": "Visszavonási lépés: {step}",
   "activity.file": "Fájl: {file}",
-  "window.machines.send.files": "{n} fájl ({kb} KB), egymás után küldve"
+  "window.machines.send.files": "{n} fájl ({kb} KB), egymás után küldve",
+  "page.back": "Vissza a Studióba",
+  "feature.configure": "Beállítás",
+  "feature.ai.title": "AI a Studióban",
+  "feature.ai.body": "Használja saját AI-modelljét minden alkalmazás Kérdés mezőjében, csatlakoztassa a már használt AI-alkalmazást, és nézze meg, mit csináltak az asszisztensei.",
+  "feature.machines.body": "Küldjön feladatot a hálózatán lévő 3D-nyomtatónak, CNC-gépnek vagy lézervágónak. Gépeit itt adja hozzá, tesztelje és távolítsa el.",
+  "feature.standards.body": "Cége házirendjei, egyszer leírva: rétegek és fájlnevek, szövegezés és azok az ellenőrzések, amelyeken egy rajznak át kell mennie. Minden csatlakoztatott AI ezeket követi."
 }

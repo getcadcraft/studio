@@ -103,33 +103,20 @@
         <span class="studio-hint" data-undo-what></span>
       </div>
     </section>
-    <section class="studio-card" data-askkey hidden aria-labelledby="studio-askkey-h">
-      <h2 id="studio-askkey-h" class="studio-h" data-t="askkey.title"></h2>
-      <div data-askkey-body></div>
+    <section class="studio-card studio-feature" data-feature="ai" aria-labelledby="studio-feat-ai-h">
+      <h2 id="studio-feat-ai-h" class="studio-h"><i class="bi bi-stars" aria-hidden="true"></i> <span data-t="feature.ai.title"></span></h2>
+      <p data-t="feature.ai.body"></p>
+      <a class="studio-btn studio-btn-line studio-btn-sm" href="#/ai" data-t="feature.configure"></a>
     </section>
-    <section class="studio-card" data-connectai hidden aria-labelledby="studio-connectai-h">
-      <h2 id="studio-connectai-h" class="studio-h" data-t="connectai.title"></h2>
-      <div data-connectai-body></div>
-      <div class="studio-hosted" data-hosted hidden>
-        <h3 class="studio-h studio-h-sm" data-t="hosted.title"></h3>
-        <div data-hosted-body></div>
-      </div>
+    <section class="studio-card studio-feature" data-feature="machines" aria-labelledby="studio-feat-machines-h">
+      <h2 id="studio-feat-machines-h" class="studio-h"><i class="bi bi-printer" aria-hidden="true"></i> <span data-t="window.machines.title"></span></h2>
+      <p data-t="feature.machines.body"></p>
+      <a class="studio-btn studio-btn-line studio-btn-sm" href="#/machines" data-t="feature.configure"></a>
     </section>
-    <section class="studio-card" data-activity aria-labelledby="studio-activity-h">
-      <h2 id="studio-activity-h" class="studio-h" data-t="activity.title"></h2>
-      <div data-activity-body></div>
-    </section>
-    <section class="studio-card" data-standards aria-labelledby="studio-standards-h">
-      <h2 id="studio-standards-h" class="studio-h" data-t="standards.title"></h2>
-      <div data-standards-body></div>
-    </section>
-    <section class="studio-card" data-machines hidden aria-labelledby="studio-machines-h">
-      <h2 id="studio-machines-h" class="studio-h" data-t="window.machines.title"></h2>
-      <div data-machines-body></div>
-    </section>
-    <section class="studio-card" data-assist hidden aria-labelledby="studio-assist-h">
-      <h2 id="studio-assist-h" class="studio-h" data-t="assist.title"></h2>
-      <div data-assist-body></div>
+    <section class="studio-card studio-feature" data-feature="standards" aria-labelledby="studio-feat-standards-h">
+      <h2 id="studio-feat-standards-h" class="studio-h"><i class="bi bi-journal-check" aria-hidden="true"></i> <span data-t="standards.title"></span></h2>
+      <p data-t="feature.standards.body"></p>
+      <a class="studio-btn studio-btn-line studio-btn-sm" href="#/standards" data-t="feature.configure"></a>
     </section>
     <section class="studio-card" data-account aria-labelledby="studio-acct-h" hidden>
       <h2 id="studio-acct-h" class="studio-h" data-t="account.title"></h2>
@@ -154,6 +141,59 @@
     </section>
   </aside>
 </main>
+
+<div id="page" class="studio-page" data-page hidden tabindex="-1">
+  <section class="studio-pg" data-pg="ai" hidden aria-labelledby="studio-pg-ai-h">
+  <a class="studio-btn studio-btn-line studio-btn-sm studio-back" href="#/"><i class="bi bi-chevron-left" aria-hidden="true"></i> <span data-t="page.back"></span></a>
+    <h2 id="studio-pg-ai-h" class="studio-h studio-pg-title" data-t="feature.ai.title"></h2>
+    <p class="studio-lead" data-t="feature.ai.body"></p>
+    <div class="studio-pg-stack">
+    <details class="studio-card studio-collapse" data-askkey data-collapse="askkey" hidden open>
+      <summary class="studio-collapse-sum"><h2 id="studio-askkey-h" class="studio-h" data-t="askkey.title"></h2></summary>
+      <div class="studio-collapse-body">
+      <div data-askkey-body></div>
+      </div>
+    </details>
+    <details class="studio-card studio-collapse" data-connectai data-collapse="connectai" hidden open>
+      <summary class="studio-collapse-sum"><h2 id="studio-connectai-h" class="studio-h" data-t="connectai.title"></h2></summary>
+      <div class="studio-collapse-body">
+      <div data-connectai-body></div>
+      <div class="studio-hosted" data-hosted hidden>
+        <h3 class="studio-h studio-h-sm" data-t="hosted.title"></h3>
+        <div data-hosted-body></div>
+      </div>
+      </div>
+    </details>
+    <section class="studio-card" data-activity aria-labelledby="studio-activity-h">
+      <h2 id="studio-activity-h" class="studio-h" data-t="activity.title"></h2>
+      <div data-activity-body></div>
+    </section>
+    <section class="studio-card" data-assist hidden aria-labelledby="studio-assist-h">
+      <h2 id="studio-assist-h" class="studio-h" data-t="assist.title"></h2>
+      <div data-assist-body></div>
+    </section>
+    </div>
+  </section>
+  <section class="studio-pg" data-pg="machines" hidden>
+  <a class="studio-btn studio-btn-line studio-btn-sm studio-back" href="#/"><i class="bi bi-chevron-left" aria-hidden="true"></i> <span data-t="page.back"></span></a>
+    <div class="studio-pg-stack">
+    <section class="studio-card" data-machines hidden aria-labelledby="studio-machines-h">
+      <h2 id="studio-machines-h" class="studio-h" data-t="window.machines.title"></h2>
+      <div data-machines-body></div>
+    </section>
+    </div>
+  </section>
+  <section class="studio-pg" data-pg="standards" hidden>
+  <a class="studio-btn studio-btn-line studio-btn-sm studio-back" href="#/"><i class="bi bi-chevron-left" aria-hidden="true"></i> <span data-t="page.back"></span></a>
+    <div class="studio-pg-stack">
+    <section class="studio-card" data-standards aria-labelledby="studio-standards-h">
+      <h2 id="studio-standards-h" class="studio-h" data-t="standards.title"></h2>
+      <div data-standards-body></div>
+    </section>
+    </div>
+  </section>
+</div>
+
 <footer class="studio-foot">
   <p data-t="foot.line"></p>
 </footer>

@@ -768,5 +768,11 @@
   "activity.export.txt": "导出文本",
   "activity.undo": "撤销步骤：{step}",
   "activity.file": "文件：{file}",
-  "window.machines.send.files": "{n} 个文件（{kb} KB），依次发送"
+  "window.machines.send.files": "{n} 个文件（{kb} KB），依次发送",
+  "page.back": "返回Studio",
+  "feature.configure": "配置",
+  "feature.ai.title": "Studio中的AI",
+  "feature.ai.body": "在每个应用的提问框中使用自有AI模型，连接已在使用的AI应用，并查看助手执行过的操作。",
+  "feature.machines.body": "将任务发送到网络中的3D打印机、CNC机床或激光切割机。在此添加、测试和移除机器。",
+  "feature.standards.body": "本公司的内部规范只需编写一次：图层和文件命名、措辞，以及图纸必须通过的检查。所有已连接的AI都会遵循。"
 }

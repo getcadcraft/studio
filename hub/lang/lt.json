@@ -813,5 +813,11 @@
   "activity.export.txt": "Eksportuoti tekstą",
   "activity.undo": "Anuliuoti žingsnį: {step}",
   "activity.file": "Failas: {file}",
-  "window.machines.send.files": "Failai: {n} ({kb} KB), siunčiami vienas po kito"
+  "window.machines.send.files": "Failai: {n} ({kb} KB), siunčiami vienas po kito",
+  "page.back": "Atgal į Studio",
+  "feature.configure": "Konfigūruoti",
+  "feature.ai.title": "DI Studio",
+  "feature.ai.body": "Naudokite savo DI modelį klausimų laukelyje kiekvienoje programoje, prijunkite jau naudojamą DI programą ir peržiūrėkite, ką atliko jūsų asistentai.",
+  "feature.machines.body": "Siųskite užduotį 3D spausdintuvui, CNC staklėms ar lazeriniam pjovikliui jūsų tinkle. Čia pridėkite, išbandykite ir pašalinkite savo įrenginius.",
+  "feature.standards.body": "Jūsų įmonės vidaus taisyklės, parašytos vieną kartą: sluoksnių ir failų pavadinimai, formuluotės ir patikrinimai, kuriuos turi atitikti brėžinys. Kiekvienas prijungtas DI jas vykdo."
 }

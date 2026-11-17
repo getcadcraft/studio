@@ -783,5 +783,11 @@
   "activity.export.txt": "Hamisha maandishi",
   "activity.undo": "Hatua ya kutendua: {step}",
   "activity.file": "Faili: {file}",
-  "window.machines.send.files": "{n} faili ({kb} KB), zimetumwa moja baada ya nyingine"
+  "window.machines.send.files": "{n} faili ({kb} KB), zimetumwa moja baada ya nyingine",
+  "page.back": "Rudi kwenye Studio",
+  "feature.configure": "Sanidi",
+  "feature.ai.title": "AI katika Studio",
+  "feature.ai.body": "Tumia modeli yako ya AI kwenye kisanduku cha Uliza cha kila programu, unganisha programu ya AI unayotumia tayari, na uone walichofanya wasaidizi wako.",
+  "feature.machines.body": "Tuma kazi kwenye 3D printer, mashine ya CNC au laser cutter iliyo kwenye mtandao wako. Ongeza, jaribu na uondoe mashine zako hapa.",
+  "feature.standards.body": "Kanuni za ndani za kampuni yako, zilizoandikwa mara moja: majina ya tabaka na faili, maneno, na ukaguzi ambao mchoro lazima upite. Kila AI iliyounganishwa inazifuata."
 }

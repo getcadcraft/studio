@@ -802,5 +802,11 @@
   "activity.export.txt": "Exportovať text",
   "activity.undo": "Krok späť: {step}",
   "activity.file": "Súbor: {file}",
-  "window.machines.send.files": "Odoslaných súborov: {n} ({kb} KB), jeden za druhým"
+  "window.machines.send.files": "Odoslaných súborov: {n} ({kb} KB), jeden za druhým",
+  "page.back": "Späť do Studia",
+  "feature.configure": "Nastaviť",
+  "feature.ai.title": "AI v Studio",
+  "feature.ai.body": "Používajte vlastný model AI vo vstupnom poli Opýtať sa v každej aplikácii, pripojte aplikáciu AI, ktorú už používate, a pozrite si, čo vaši asistenti urobili.",
+  "feature.machines.body": "Odošlite úlohu na 3D tlačiareň, CNC stroj alebo laserový rezací stroj vo vašej sieti. Pridajte, otestujte a odstráňte tu svoje stroje.",
+  "feature.standards.body": "Interné pravidlá vašej firmy zapísané raz: názvy hladín a súborov, znenie a kontroly, ktorými musí výkres prejsť. Všetky pripojené AI sa nimi riadia."
 }

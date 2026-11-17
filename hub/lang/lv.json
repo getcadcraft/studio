@@ -798,5 +798,11 @@
   "activity.export.txt": "Eksportēt tekstu",
   "activity.undo": "Atsaukšanas solis: {step}",
   "activity.file": "Fails: {file}",
-  "window.machines.send.files": "{n} faili ({kb} KB), nosūtīti viens pēc otra"
+  "window.machines.send.files": "{n} faili ({kb} KB), nosūtīti viens pēc otra",
+  "page.back": "Atpakaļ uz Studio",
+  "feature.configure": "Konfigurēt",
+  "feature.ai.title": "AI programmā Studio",
+  "feature.ai.body": "Izmantojiet savu AI modeli jautājumu lodziņā katrā lietotnē, pievienojiet jau lietoto AI lietotni un skatiet, ko jūsu asistenti ir darījuši.",
+  "feature.machines.body": "Nosūtiet darbu 3D printerim, CNC iekārtai vai lāzergriezējam savā tīklā. Šeit pievienojiet, pārbaudiet un noņemiet savas iekārtas.",
+  "feature.standards.body": "Jūsu uzņēmuma iekšējie noteikumi, uzrakstīti vienreiz: slāņu un failu nosaukumi, formulējumi un pārbaudes, kuras rasējumam jāizpilda. Visi pievienotie AI tos ievēro."
 }

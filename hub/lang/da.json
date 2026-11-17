@@ -783,5 +783,11 @@
   "activity.export.txt": "Eksportér tekst",
   "activity.undo": "Fortryd trin: {step}",
   "activity.file": "Fil: {file}",
-  "window.machines.send.files": "{n} filer ({kb} KB), sendt én efter én"
+  "window.machines.send.files": "{n} filer ({kb} KB), sendt én efter én",
+  "page.back": "Tilbage til Studio",
+  "feature.configure": "Konfigurér",
+  "feature.ai.title": "AI i Studio",
+  "feature.ai.body": "Brug din egen AI-model i spørgefeltet i alle apps, forbind den AI-app du allerede bruger, og se hvad dine assistenter har gjort.",
+  "feature.machines.body": "Send en opgave til en 3D-printer, CNC-maskine eller laserskærer på dit netværk. Tilføj, test og fjern dine maskiner her.",
+  "feature.standards.body": "Dit firmas husregler, skrevet én gang: lag- og filnavne, formuleringer og de kontroller en tegning skal bestå. Alle tilsluttede AI'er følger dem."
 }

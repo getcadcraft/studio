@@ -783,5 +783,11 @@
   "activity.export.txt": "Tekst exporteren",
   "activity.undo": "Stap ongedaan maken: {step}",
   "activity.file": "Bestand: {file}",
-  "window.machines.send.files": "{n} bestanden ({kb} KB), na elkaar verzonden"
+  "window.machines.send.files": "{n} bestanden ({kb} KB), na elkaar verzonden",
+  "page.back": "Terug naar Studio",
+  "feature.configure": "Configureren",
+  "feature.ai.title": "AI in Studio",
+  "feature.ai.body": "Gebruik uw eigen AI-model in het Ask-vak van elke app, koppel de AI-app die u al gebruikt en bekijk wat uw assistenten hebben gedaan.",
+  "feature.machines.body": "Stuur een opdracht naar een 3D-printer, CNC-machine of lasersnijder in uw netwerk. Voeg uw machines hier toe, test ze en verwijder ze.",
+  "feature.standards.body": "De huisregels van uw bureau, één keer vastgelegd: laag- en bestandsnamen, formuleringen en de controles die een tekening moet doorstaan. Elke verbonden AI volgt ze."
 }

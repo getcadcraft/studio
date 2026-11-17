@@ -783,5 +783,11 @@
   "activity.export.txt": "Voer teks uit",
   "activity.undo": "Ontdoen-stap: {step}",
   "activity.file": "Lêer: {file}",
-  "window.machines.send.files": "{n} lêers ({kb} KB), een na die ander gestuur"
+  "window.machines.send.files": "{n} lêers ({kb} KB), een na die ander gestuur",
+  "page.back": "Terug na Studio",
+  "feature.configure": "Konfigureer",
+  "feature.ai.title": "KI in Studio",
+  "feature.ai.body": "Gebruik jou eie KI-model in die Vra-boks van elke toepassing, koppel die KI-toepassing wat jy reeds gebruik, en sien wat jou assistente gedoen het.",
+  "feature.machines.body": "Stuur 'n taak na 'n 3D-drukker, CNC-masjien of lasersnyer op jou netwerk. Voeg, toets en verwyder jou masjiene hier.",
+  "feature.standards.body": "Jou firma se huisreëls, een keer geskryf: laag- en lêernaamgewing, formulering en die kontroles wat 'n tekening moet slaag. Elke gekoppelde KI volg hulle."
 }

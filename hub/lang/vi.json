@@ -768,5 +768,11 @@
   "activity.export.txt": "Xuất văn bản",
   "activity.undo": "Bước hoàn tác: {step}",
   "activity.file": "Tệp: {file}",
-  "window.machines.send.files": "{n} tệp ({kb} KB), gửi lần lượt từng tệp"
+  "window.machines.send.files": "{n} tệp ({kb} KB), gửi lần lượt từng tệp",
+  "page.back": "Quay lại Studio",
+  "feature.configure": "Cấu hình",
+  "feature.ai.title": "AI trong Studio",
+  "feature.ai.body": "Dùng mô hình AI của riêng bạn trong ô Hỏi của mọi ứng dụng, kết nối ứng dụng AI bạn đang dùng, và xem các trợ lý của bạn đã làm gì.",
+  "feature.machines.body": "Gửi một công việc đến máy in 3D, máy CNC hoặc máy cắt laser trên mạng của bạn. Thêm, kiểm tra và gỡ bỏ máy của bạn tại đây.",
+  "feature.standards.body": "Quy tắc riêng của công ty bạn, viết một lần: tên lớp và tên tệp, cách diễn đạt và các kiểm tra mà bản vẽ phải đạt. Mọi AI được kết nối đều tuân theo."
 }

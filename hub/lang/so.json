@@ -783,5 +783,11 @@
   "activity.export.txt": "Dhoofi qoraal",
   "activity.undo": "Tallaabo ka noqo: {step}",
   "activity.file": "Fayl: {file}",
-  "window.machines.send.files": "{n} fayl ({kb} KB), midkiiba kan kale ka dib ayaa la diray"
+  "window.machines.send.files": "{n} fayl ({kb} KB), midkiiba kan kale ka dib ayaa la diray",
+  "page.back": "Ku noqo Studio",
+  "feature.configure": "Habayn",
+  "feature.ai.title": "AI ku jira Studio",
+  "feature.ai.body": "Isticmaal moodelkaaga AI ee gaarka ah sanduuqa Weydii ee app kasta, ku xidh app-ka AI ee hore u isticmaashay, oo arag waxa kaaliyayaashaadu sameeyeen.",
+  "feature.machines.body": "U dir shaqo 3D printer, mishiinka CNC ama laser cutter ee shabakadaada ku jira. Halkan ku dar, tijaabi oo ka saar mishiinadaada.",
+  "feature.standards.body": "Xeerarka guriga shirkaddaada, mar la qoro: magacyada lakabka iyo faylka, erayada, iyo hubinta uu naqshaddu inay marto. Dhammaan AI-yada la xidhay ayaa raacaya."
 }
