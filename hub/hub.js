@@ -21,7 +21,7 @@ import { route, cleanAlways, knownExtensions, extOf } from './route.js';
 import { openChannel, windowId } from './channel.js';
 import { Journal } from './undo-journal.js';   // 0.9 EG.77: one Undo across the windows
 import { putHandoff, newHandoffId } from './handoff.js';
-import { cloudClient, cardModel, SyncQueue, SIGN_IN_AGAIN, CloudError } from './cloud.js';
+import { cloudClient, cardModel, SyncQueue, SIGN_IN_AGAIN, CloudError, syncSign } from './cloud.js';
 import { createHost, recentStore, createControlRelay } from './host.js';
 import { wireJoin } from './live/hub-join.js';
 import { LIFETIMES, LINK_LIFETIME_KEY, linkLifetime, setLinkLifetime } from './live/view.js';
@@ -667,11 +667,23 @@ async function refreshAccount() {
   renderCloudList();
 }
 
+/** 0.11 SCF.9: the same state on Studio's taskbar button / dock icon (only when it changed; the shell takes the hub's report). */
+let lastSign = '';
+function reportSync(q) {
+  if (!desk || !desk.sync || typeof desk.sync.state !== 'function') return;
+  const sign = syncSign(q, { signedIn: acct.state === 'signed_in', online: typeof navigator === 'undefined' || navigator.onLine !== false });
+  const key = JSON.stringify(sign);
+  if (key === lastSign) return;
+  lastSign = key;
+  desk.sync.state(sign).catch(() => {});
+}
+
 async function renderAccount() {
   const card = $('[data-account]');
   if (!desk || !desk.account) { card.hidden = true; return; }
   const body = card.querySelector('[data-account-body]');
   const q = queue ? await queue.summary() : { waiting: 0, conflict: 0, failed: 0, paused: null };
+  reportSync(q);
   const kids = [];
   if (acct.state === 'waiting') {
     kids.push(el('p', {}, t('account.waiting')), acct.code ? el('p', { class: 'studio-code' }, acct.code) : null,
@@ -905,6 +917,7 @@ async function renderNews() {
   try { st = desk.updates ? await desk.updates.status() : null; } catch { st = null; }
   // 0.7: a package (MSIX) has a check too (the Store / App Installer behind it), so the status decides before the store flag.
   if (!st || !st.available) {
+    if (st && st.flatpak) { box.replaceChildren(el('p', {}, t('updates.flatpak'))); return; }   // 0.11 FX.138
     if (info.store === true || /^(android|ios|ipados)$/.test(String(info.platform || ''))) { box.replaceChildren(el('p', {}, t('updates.store'))); return; }
     if (info.portable === true) { box.replaceChildren(el('p', {}, t('updates.portable'))); return; }
     box.replaceChildren(el('p', {}, t('updates.none')));
@@ -940,6 +953,7 @@ async function renderUpdatesSettings() {
   const v = updatesView(st);
   if (!v) { box.replaceChildren(el('p', { class: 'studio-hint' }, t(desk ? 'updates.none' : 'updates.browser'))); return; }
   const row = (label, ...val) => [el('dt', {}, label), el('dd', {}, ...val)];
+  const start = await startSummary();
   const engine = engineLabel(typeof navigator !== 'undefined' ? navigator.userAgent : '');
   const when = (ms) => el('time', { datetime: new Date(ms).toISOString(), title: new Date(ms).toLocaleString(locale()) }, new Date(ms).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }));
   const facts = el('dl', { class: 'studio-facts' },
@@ -948,6 +962,7 @@ async function renderUpdatesSettings() {
     v.needs ? row(t('settings.updates.needs'), t(v.needs)) : null,
     engine ? row(t('settings.updates.engine'), engine.name + ' ' + engine.version) : null,
     row(t('settings.updates.about'), t('settings.updates.about.text')),
+    start ? row(t('settings.start'), start.words, ' ', el('span', { class: 'studio-muted' }, start.okText)) : null,
     row(t('settings.updates.last'), v.last ? [when(v.last.at), ' · ', t(v.last.key)] : t('updates.never')),
     row(t('settings.updates.latest'), !v.latest ? t('updates.latest.unknown')
       : v.latest.same ? [el('strong', {}, t('updates.latest.same')), ' ', t('settings.updates.same.detail', { v: v.latest.version }), ...(v.last ? [' · ', when(v.last.at)] : [])]
@@ -958,9 +973,53 @@ async function renderUpdatesSettings() {
   const auto = v.auto.shown ? el('label', { class: 'studio-check' }, el('input', { type: 'checkbox', 'data-upd-auto': true, checked: v.auto.on, onchange: (e) => desk.updates.setAuto(e.target.checked).then(renderUpdatesSettings).catch(() => {}) }), ' ', t('updates.auto')) : null;
   const autoHint = v.auto.shown ? el('p', { class: 'studio-hint' }, t(v.auto.hint)) : null;
   // replaceChildren() would print a null as "null": only the parts this copy has.
-  box.replaceChildren(...[facts, notes, el('div', { class: 'studio-btnrow' }, check, install),
+  const logBtns = start ? el('div', { class: 'studio-btnrow' },
+    el('button', { type: 'button', class: 'studio-btn studio-btn-line studio-btn-sm', 'data-startlog-copy': true, onclick: () => startLogOut('copy') }, t('settings.start.copy')),
+    typeof desk.saveDialog === 'function' ? el('button', { type: 'button', class: 'studio-btn studio-btn-line studio-btn-sm', 'data-startlog-save': true, onclick: () => startLogOut('save') }, t('settings.start.save')) : null) : null;
+  box.replaceChildren(...[facts, logBtns, notes, el('div', { class: 'studio-btnrow' }, check, install),
     v.check.why ? el('p', { class: 'studio-hint', 'data-upd-why': true }, t(v.check.why)) : null,
     auto, autoHint, v.autoNote ? el('p', { class: 'studio-hint' }, t(v.autoNote)) : null].filter(Boolean));
+}
+
+// ------------------------------------------------------------------ start-up time (0.10 PERF.18, page side 0.11)
+
+/** This start, as the shell timed it (desktop-shell startlog.rs `summary`): the words for Settings › Updates, or null (the
+ *  browser edition, an older shell, or nothing reached yet). `ok` = the start came in under the budget (window under 1 s,
+ *  ready under 3 s); null while a stage is still missing. */
+async function startSummary() {
+  if (!desk || !desk.startLog || typeof desk.startLog.summary !== 'function') return null;
+  let s = null;
+  try { s = await desk.startLog.summary(); } catch { s = null; }
+  if (!s || typeof s.totalMs !== 'number') return null;
+  const sec = (ms) => (ms / 1000).toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const words = typeof s.windowBuiltMs === 'number' ? t('settings.start.total', { total: sec(s.totalMs), window: sec(s.windowBuiltMs) }) : t('settings.start.total.only', { total: sec(s.totalMs) });
+  const ok = s.windowWithinBudget === null || s.usableWithinBudget === null ? null : !!(s.windowWithinBudget && s.usableWithinBudget);
+  const okText = ok === null ? t('settings.start.partial') : ok ? t('settings.start.ok') : t('settings.start.slow');
+  return { words, ok, okText, summary: s };
+}
+
+/** "Copy the start-up log" / "Save the start-up log": the shell's text of this start (no file names, paths or account data). */
+async function startLogOut(how) {
+  let text = '';
+  try { text = await desk.startLog.text(); } catch { text = ''; }
+  if (!text) { say(t('settings.start.empty'), 'error'); return; }
+  if (how === 'copy') {
+    try { await navigator.clipboard.writeText(text); say(t('settings.start.copied')); } catch { say(t('settings.start.failed'), 'error'); }
+    return;
+  }
+  try {
+    const p = await desk.saveDialog({ defaultPath: 'startup.log', title: t('settings.start.save'), filters: [{ name: 'Log', extensions: ['log', 'txt'] }] });
+    if (p) { await desk.writeFile(p, new TextEncoder().encode(text)); say(t('settings.start.saved')); }
+  } catch { say(t('settings.start.failed'), 'error'); }
+}
+
+/** The hub is Studio's first page: it tells the shell when its module runs and when it first painted, so the start-up log and the
+ *  total above name the whole start (startlog.rs accepts these two stages once, from the main window). */
+function markStart() {
+  if (!desk || !desk.startLog || typeof desk.startLog.mark !== 'function') return;
+  desk.startLog.mark('app module running').catch(() => {});
+  const paint = () => desk.startLog.mark('first drawing paint').catch(() => {});
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(paint)); else setTimeout(paint, 0);
 }
 
 // ------------------------------------------------------------------ offline (browser edition, H.8/H.10)
@@ -1229,6 +1288,7 @@ if (!desk || !desk.account) $('[data-account]').hidden = true;
   if (!(desk && desk.machines) && feat('machines')) feat('machines').hidden = true;
 }
 doc.documentElement.classList.add('studio-ready');
+markStart();
 
 // For tests and add-ons: what the hub decided, never the person's files.
 window.cadcraftStudioHub = Object.freeze({ suite, route: (name) => route(name, { apps: APPS, always: always() }), channel, openApp, refreshWindows, undoAcross, journal, renderRecent, refreshAccount, queue: () => queue, join: (text) => join && join.go(text) });

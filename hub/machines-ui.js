@@ -46,7 +46,7 @@ function maker(doc) {
   };
 }
 const transport = (desk) => ({ request: (step) => desk.machines.request(step) });
-const errWord = (T, r) => ({ network: T('window.machines.err.network'), key: T('window.machines.err.key'), refused: T('window.machines.err.refused') }[r.code] || r.message || T('window.machines.err.refused'));
+const errWord = (T, r) => ({ network: T('window.machines.err.network'), key: T('window.machines.err.key'), refused: T('window.machines.err.refused'), tls: T('window.machines.err.tls'), not_allowed: T('window.machines.err.notallowed') }[r.code] || r.message || T('window.machines.err.refused'));
 
 /** Settings: Studio › Machines. */
 export function machinesSettings({ doc = document, T, desk, canSetKey = true, say = () => {} }) {

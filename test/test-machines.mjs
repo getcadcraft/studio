@@ -4,6 +4,7 @@
 // OctoPrint, Moonraker, PrusaLink and Duet servers on 127.0.0.1, through a Node transport that enforces the same rules the desktop
 // shell does (private addresses only, the key filled in from a store the page cannot read, no redirects).   node test/test-machines.mjs
 import http from 'node:http';
+import fs from 'node:fs';
 import path from 'node:path';
 import { STUDIO, ok, section, done } from './lib.mjs';
 
@@ -151,5 +152,29 @@ section('Steel NC files (.nc1) on a CNC, never a printer (EG.40, part-model_PART
   ok(M.plan(cnc, job).steps.length === 1, 'a CNC takes it');
   let e = null; try { M.plan(pr, job); } catch (x) { e = x; }
   ok(e && e.code === 'device', 'a printer is refused: ' + (e && e.message));
+}
+
+// 0.11 EG.40, read against machines.rs: the shell speaks plain http only, and its error codes reach the page
+{
+  const tlsM = { id: 'secure-1', kind: 'octoprint', host: '192.168.1.41', tls: true };
+  let code = null; try { M.pingPlan(M.cleanMachine(tlsM)); } catch (e) { code = e.code; }
+  ok(code === 'tls', 'an https machine is refused before a test call (machines.rs refuses https; no key in the clear)');
+  code = null; try { M.plan(tlsM, { name: 'a.gcode', bytes: new Uint8Array([1]) }); } catch (e) { code = e.code; }
+  ok(code === 'tls', 'and before a job');
+  const plain = { id: 'ender-9', kind: 'moonraker', host: '192.168.1.42' };
+  const shell = (c) => ({ request: async () => { throw Object.assign(new Error(c + ': x'), { code: c }); } });
+  ok((await M.send(plain, { name: 'a.gcode', bytes: new Uint8Array([1]) }, shell('not_allowed'))).code === 'not_allowed', 'the shell\'s not_allowed reaches the page as itself');
+  ok((await M.send(plain, { name: 'a.gcode', bytes: new Uint8Array([1]) }, shell('error'))).code === 'network', 'anything else is the network');
+  const p = M.plan(plain, { name: 'a.gcode', bytes: new Uint8Array([1]) }).steps[0];
+  const PREFIXES = ['/api/version', '/api/files/local', '/api/v1/files/usb/', '/server/info', '/server/files/upload', '/machine/status', '/machine/file/gcodes/'];
+  const HEADERS = ['content-type', 'x-api-key', 'print-after-upload', 'overwrite', 'accept'];
+  const steps = Object.keys(M.KINDS).flatMap((kind) => { const m = { id: 'm-' + kind, kind, host: '192.168.1.50' }; return [M.pingPlan(M.cleanMachine(m)), ...M.plan(m, { name: 'a.gcode', bytes: new Uint8Array([1]) }).steps]; });
+  const rsPath = process.env.CADCRAFT_SHELL ? path.join(process.env.CADCRAFT_SHELL, 'src-tauri/src/machines.rs') : null;
+  if (rsPath && fs.existsSync(rsPath)) {
+    const rs = fs.readFileSync(rsPath, 'utf8');
+    ok(PREFIXES.every((x) => rs.includes('"' + x + '"')) && HEADERS.every((x) => rs.includes('"' + x + '"')), 'the path and header lists here are machines.rs\'s own');
+  } else console.log('  (CADCRAFT_SHELL not set: the check against machines.rs is skipped)');
+  ok(steps.every((s) => /^http:\/\//.test(s.url) && PREFIXES.some((x) => new URL(s.url).pathname === x || new URL(s.url).pathname.startsWith(x)) && Object.keys(s.headers).every((h) => HEADERS.includes(h.toLowerCase())) && ['GET', 'POST', 'PUT'].includes(s.method)), 'every driver step is one machines.rs lets through (plain http, its paths, its headers, GET/POST/PUT)');
+  ok(p.url.startsWith('http://192.168.1.42:7125/server/files/upload'), 'Moonraker upload as machines.rs expects');
 }
 done();

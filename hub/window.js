@@ -14,6 +14,7 @@
  * Words: #studio-window-lang (the packer embeds the few strings, from hub/lang/<locale>.json "window.*").
  */
 import { openChannel, windowId } from './channel.js';
+import { passDown } from './ask-engine.js';   // Studio's AI engine, handed to this app's Ask box
 import { createDrag } from './window-drag.js';
 import { sendDialog } from './machines-ui.js';
 
@@ -65,6 +66,9 @@ async function start() {
     Object.defineProperty(window, 'ccSendToMachine', { value: sendToMachine, enumerable: true, configurable: true });
   }
   Object.defineProperty(window, 'cadcraftStudio', { value: Object.freeze({ id: ch.id, app, post: ch.post, on: ch.on, hub, drag, machines }), enumerable: true });
+  // AI belongs to Studio and is passed down to the apps (owner 2026-11-20): the Ask box of this app finds Studio's engine on the page, nothing to add.
+  // Only where Studio can reach the key store (the desktop shell); the engine is null until the person set up a model in Studio › Your own AI model.
+  if (desk && desk.ask) passDown({ g: window, studio: window.cadcraftStudio, name: T('window.ask.engine', 'Your own model') });
   ch.on('window.focus', () => { try { window.focus(); } catch { /* the browser decides */ } });
   // EG.77 undo across apps (0.9 mounts-09): the app tells its finished steps with the window event `cc-undo-report` (its undo-hook.js); they go to the channel as
   // `edit.done` for the hub's journal. The hub's undo.probe / undo.run reach the app's own reporter (window.ccUndoReporter), and the answer goes back as

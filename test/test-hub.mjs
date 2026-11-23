@@ -267,6 +267,17 @@ section('News from getcadcraft.com (SI.5)');
   ok(!/innerHTML|insertAdjacentHTML|outerHTML/.test(hubSrc), 'the hub never builds HTML from strings (news text goes in through el())');
 }
 
+section('The sync sign outside the page (0.11 SCF.9)');
+{
+  const sg = (sum, o) => Q.syncSign(sum, o);
+  ok(sg({ waiting: 0 }, { signedIn: true }).state === 'synced' && sg({}, { signedIn: false }).state === 'off', 'all saved = synced; signed out with nothing waiting = off');
+  ok(JSON.stringify(sg({ waiting: 2 }, { signedIn: true, online: true })) === '{"state":"saving","waiting":2,"problems":0}' && sg({ waiting: 2 }, { signedIn: true, online: false }).state === 'offline', 'saves on their way, or waiting offline');
+  ok(sg({ waiting: 1, paused: 'signin' }, { signedIn: true }).state === 'signin' && sg({ waiting: 3 }, { signedIn: false }).state === 'signin', 'the sign-in ended with saves waiting: sign in');
+  ok(sg({ waiting: 1, conflict: 1, failed: 1 }, { signedIn: true }).state === 'problem' && sg({ conflict: 1, failed: 1 }, { signedIn: true }).problems === 2, 'a conflict or a refused save wins, with how many');
+  const hub = fs.readFileSync(path.join(STUDIO, 'hub/hub.js'), 'utf8');
+  ok(/reportSync\(q\);/.test(hub) && /desk\.sync\.state\(sign\)/.test(hub), 'the account card reports it to the shell each time it is drawn (only when it changed)');
+}
+
 section('Language file');
 {
   const en = JSON.parse(fs.readFileSync(path.join(STUDIO, 'hub/lang/en.json'), 'utf8'));
@@ -357,6 +368,17 @@ section('Settings › Updates (0.7 MSIX + one update endpoint)');
     const m = [...U.KEYS, 'settings.updates', 'settings.updates.current', 'settings.updates.latest'].filter((k) => !l[k]);
     ok(!m.length, `${loc} has a draft for every update word` + (m.length ? ': ' + m.join(', ') : ''));
   }
+  // 0.11 FX.138: inside a Flatpak the shell has no updater; Settings says Flatpak updates the copy
+  v = U.updatesView({ ...base, available: false, source: null, autoAllowed: false, edition: 'flatpak', platform: 'linux', flatpak: true });
+  ok(v.edition === 'updates.edition.flatpak' && v.from === 'updates.from.flatpak' && v.check.disabled && v.check.why === 'updates.why.flatpak' && !v.auto.shown, 'a Flatpak: edition Flatpak, updates come from Flatpak, Check is off and says why');
+  v = U.updatesView({ ...base, available: false, source: null, autoAllowed: false, edition: 'deb', platform: 'linux' });
+  ok(v.from === null && v.check.why === 'updates.why.none', 'a build with no updater that is not a Flatpak keeps "no updater"');
+  const hubSrc = fs.readFileSync(path.join(STUDIO, 'hub/hub.js'), 'utf8');
+  ok(/st && st\.flatpak\) \{ box\.replaceChildren\(el\('p', \{\}, t\('updates\.flatpak'\)\)\)/.test(hubSrc), 'the What\'s new card says the same for a Flatpak');
+  // 0.10 PERF.18, page side: the hub marks its two stages at start and Settings shows the last start with Copy / Save
+  ok(/desk\.startLog\.mark\('app module running'\)/.test(hubSrc) && /desk\.startLog\.mark\('first drawing paint'\)/.test(hubSrc) && /\nmarkStart\(\);\n/.test(hubSrc), 'the hub tells the shell "app module running" and "first drawing paint" (the two stages startlog.rs takes)');
+  ok(/startSummary\(\)/.test(hubSrc) && /data-startlog-copy/.test(hubSrc) && /data-startlog-save/.test(hubSrc), 'Settings › Updates shows the last start, with Copy and Save the start-up log');
+  ok(['settings.start', 'settings.start.total', 'settings.start.ok', 'settings.start.slow', 'settings.start.copy', 'settings.start.save'].every((k) => en[k]), 'the start-up words are in en.json');
   const html = fs.readFileSync(path.join(STUDIO, 'hub/index.html'), 'utf8');
   ok(/data-set-updates[\s\S]*data-upd/.test(html), 'Settings has its Updates section');
 }

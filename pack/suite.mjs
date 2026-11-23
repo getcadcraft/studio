@@ -266,13 +266,13 @@ function suitePage(slug, html, isShared) {
 
 // ------------------------------------------------------------------ the hub
 
-const HUB_FILES = ['hub.js', 'hub.css', 'route.js', 'channel.js', 'handoff.js', 'cloud.js', 'news.js', 'updates.js', 'avatar.js', 'window.js', 'connect-ai.js', 'drag.js', 'window-drag.js', 'machines.js', 'machines-ui.js', 'hosted.js', 'standards-card.js', 'activity-card.js', 'ask-key-card.js', 'undo-journal.js'];
+const HUB_FILES = ['hub.js', 'hub.css', 'route.js', 'channel.js', 'handoff.js', 'cloud.js', 'news.js', 'updates.js', 'avatar.js', 'window.js', 'connect-ai.js', 'drag.js', 'window-drag.js', 'machines.js', 'machines-ui.js', 'hosted.js', 'standards-card.js', 'activity-card.js', 'ask-key-card.js', 'ask-engine.js', 'undo-journal.js'];
 for (const f of HUB_FILES) copy(path.join(STUDIO, 'hub', f), path.join(DEST, 'hub', f));
 // Studio Live's window and hub modules (0.5 LV.6 / LV.7 / LV.23).
 for (const f of fs.readdirSync(path.join(STUDIO, 'hub/live')).filter((f) => /\.(js|css)$/.test(f))) copy(path.join(STUDIO, 'hub/live', f), path.join(DEST, 'hub/live', f));
 copy(path.join(PUB, 'assets/js/host.js'), path.join(DEST, 'hub/host.js'));
 copy(path.join(PUB, '../tools/mcp/clients.mjs'), path.join(DEST, 'hub/clients.mjs'));
-copy(path.join(PUB, '../tools/mcp/byok.mjs'), path.join(DEST, 'hub/byok.mjs'));   // AC.11: the engine's limits and defaults, beside the key card (0.10: the shell's copy is gone; the app-side client is the own-ai-key add-on)
+copy(path.join(PUB, '../tools/mcp/byok.mjs'), path.join(DEST, 'hub/byok.mjs'));   // AC.11: Studio's AI engine, beside the key card; ask-engine.js passes it down to every app window (owner 2026-11-20). No app build holds a copy
 copy(path.join(PUB, 'assets/js/ai-activity.js'), path.join(DEST, 'hub/ai-activity.js'));   // AC.13: the one log, beside its card
 copy(path.join(PUB, 'assets/js/ai-standards.js'), path.join(DEST, 'hub/ai-standards.js'));   // AC.14: the one cleaner, beside the card
 copy(path.join(PUB, '../tools/mcp/packs.mjs'), path.join(DEST, 'hub/packs.mjs'));              // skill packs + starters + the firm's standards, mounted on the hub's dispatcher

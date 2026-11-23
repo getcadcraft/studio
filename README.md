@@ -53,7 +53,7 @@ and stop with a message when one is needed and unset:
 
 ```
 CADCRAFT_SITE=<site> node pack/suite.mjs                   # dev builds of the eight apps → out/studio-suite/vdev/
-CADCRAFT_SITE=<site> node pack/suite.mjs --build 0.4 --zip # a release + out/cadcraft-studio-browser-v0.4.zip + SHA256SUMS
+CADCRAFT_SITE=<site> node pack/suite.mjs --build 0.10.1 --zip # a release + out/cadcraft-studio-browser-v0.10.1.zip + SHA256SUMS
 ```
 
 Options: `--apps a,b` (a subset), `--editions <dir>` (reuse editions packed already), `--out <dir>`, `--allow-gate`
@@ -64,7 +64,7 @@ finished folder goes through the same gate.
 The desktop install is built by the desktop shell from that folder:
 
 ```
-node build.mjs studio --edition <studio>/out/studio-suite/v0.4     # in the desktop-shell repo
+node build.mjs studio --edition <studio>/out/studio-suite/v0.10.1     # in the desktop-shell repo
 ```
 
 ## Tests

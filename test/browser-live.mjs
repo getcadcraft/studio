@@ -320,6 +320,44 @@ try {
   ok(await call(A, { id: 'sess-1' }, 3, 'undo', {}), 'the assistant undoes (its own undo)');
   await until(B, () => ![...window.cadcraft.doc.model.values()].some((e) => e.type === 'line' && e.x1 === 300 && e.y1 === 300), null, 'the line gone at the joiner');
   ok(await B.evaluate(() => ![...window.cadcraft.doc.model.values()].some((e) => e.type === 'line' && e.x1 === 300) && [...window.cadcraft.doc.model.values()].some((e) => e.type === 'circle' && e.r === 2)), 'its line is gone everywhere; Ben\'s circle stays');
+  // EG.41: its edits are in Recent edits under its own name, its cursor shows where it works, and a sheet or area is held
+  const hasLine = (p, x) => p.evaluate((x) => [...window.cadcraft.doc.model.values()].some((e) => e.type === 'line' && e.x1 === x), x);
+  const here = await A.evaluate(() => { const c = window.cadcraftStudioLive.client; const ad = c.adapter; let h = typeof ad.here === 'function' ? ad.here() : null; if (!h) { const p = c.lastPresence || {}; h = { sheet: p.sp, area: p.box }; } return h && h.area ? { sheet: h.sheet, area: h.area } : null; });
+  ok(!!here && here.area.length === 4, 'the window knows what the person is looking at (the sheet and the view): ' + JSON.stringify(here));
+  const [ix, iy] = [Math.round((here.area[0] + here.area[2]) / 2) + 0.5, Math.round((here.area[1] + here.area[3]) / 2) + 0.5];
+  const ox = Math.round(here.area[2] + (here.area[2] - here.area[0]) * 50) + 0.5;
+  ok(await call(A, { id: 'sess-1' }, 20, 'command_run', { input: ['LINE', `${ix},${iy}`, `${ix + 1},${iy + 1}`, ''] }), 'the assistant draws again (inside the view)');
+  await until(B, (x) => [...window.cadcraft.doc.model.values()].some((e) => e.type === 'line' && e.x1 === x), ix, 'that line at the joiner');
+  await until(B, () => { const c = window.cadcraftStudioLive.client; const a = [...c.peers.values()].find((p) => p.role === 'assistant'); const p = a && c.presence.get(a.c); return !!(p && p.assistant && p.assistant.working && p.cmd === 'command_run'); }, null, 'the assistant\'s presence at the joiner, working, with the tool it ran', 6000);
+  const cur = await B.evaluate(() => { const c = window.cadcraftStudioLive.client; const a = [...c.peers.values()].find((p) => p.role === 'assistant'); const p = a && c.presence.get(a.c); return p ? JSON.stringify(p) : ''; });
+  ok(/"working":true/.test(cur) && /"cmd":"command_run"/.test(cur), 'the joiner has the assistant\'s own presence, working, where its step landed, naming the tool it ran (not the one before): ' + cur.slice(0, 200));
+  await until(A, () => [...document.querySelectorAll('[data-live-edit]')].some((x) => /Assistant/.test(x.textContent) && /add/i.test(x.textContent)), null, 'the assistant\'s edit in the host\'s Recent edits', 8000);
+  const aLog = await A.evaluate(() => [...document.querySelectorAll('[data-live-edit]')].map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
+  ok(aLog.some((t) => /Assistant/.test(t) && /add/i.test(t)), 'Recent edits names the assistant for its line (host): ' + aLog.slice(0, 3).join(' | '));
+  await until(B, () => [...document.querySelectorAll('[data-live-edit]')].some((x) => /Assistant/.test(x.textContent) && /add/i.test(x.textContent)), null, 'the assistant\'s edit in the joiner\'s Recent edits', 8000);
+  const bLog = await B.evaluate(() => [...document.querySelectorAll('[data-live-edit]')].map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
+  ok(bLog.some((t) => /Assistant/.test(t) && /add/i.test(t)), 'and at the joiner: ' + bLog.slice(0, 3).join(' | '));
+  ok(await A.$('[data-live-scope] [data-live-scope-set]') !== null, 'the person can give their assistant a place to work ("Give it what I\'m looking at")');
+  ok(/Anywhere in the file/.test(await A.textContent('[data-live-scope]')), 'until then it may work anywhere in the file');
+  ok(await B.$('[data-live-scope]') === null, 'nobody else can set the scope of someone\'s assistant');
+  await A.click('[data-live-scope-set]');
+  await until(A, () => /Only /.test((document.querySelector('[data-live-scope]') || {}).textContent || ''), null, 'the scope line');
+  ok(/Only .*(inside the marked area|on )/.test(await A.textContent('[data-live-scope]')), 'the scope is shown: ' + (await A.textContent('[data-live-scope]')).replace(/\s+/g, ' ').slice(0, 90));
+  await shot(A, '05d-host-assistant-scope');
+  await call(A, { id: 'sess-1' }, 21, 'command_run', { input: ['LINE', `${ox},${iy}`, `${ox + 1},${iy + 1}`, ''] });
+  await A.waitForTimeout(1500);
+  ok(!(await hasLine(A, ox)) && !(await hasLine(B, ox)), 'a line outside the area it was given is taken back: in nobody\'s drawing');
+  ok(await call(A, { id: 'sess-1' }, 22, 'command_run', { input: ['LINE', `${ix + 2},${iy}`, `${ix + 3},${iy + 1}`, ''] }), 'inside the area it still works');
+  await until(B, (x) => [...window.cadcraft.doc.model.values()].some((e) => e.type === 'line' && e.x1 === x), ix + 2, 'the inside line at the joiner');
+  ok(await hasLine(B, ix + 2), 'and that line reaches the joiner');
+  await A.click('[data-live-scope-clear]');
+  await until(A, () => /Anywhere in the file/.test((document.querySelector('[data-live-scope]') || {}).textContent || ''), null, 'the scope cleared');
+  ok(await call(A, { id: 'sess-1' }, 23, 'command_run', { input: ['LINE', `${ox},${iy}`, `${ox + 1},${iy + 1}`, ''] }), 'with the scope cleared it may draw there');
+  await until(B, (x) => [...window.cadcraft.doc.model.values()].some((e) => e.type === 'line' && e.x1 === x), ox, 'the far line at the joiner');
+  ok(await hasLine(B, ox), 'the far line reaches the joiner once the scope is gone');
+  for (const id of [24, 25, 26]) await call(A, { id: 'sess-1' }, id, 'undo', {});
+  await until(B, ([a, b]) => ![...window.cadcraft.doc.model.values()].some((e) => e.type === 'line' && (e.x1 === a || e.x1 === a + 2 || e.x1 === b)), [ix, ox], 'the assistant\'s lines undone at the joiner');
+  ok(!(await hasLine(B, ix)) && !(await hasLine(B, ix + 2)) && !(await hasLine(B, ox)), 'each of its changes can be undone: all three lines are gone everywhere');
   // an editor's assistant: approved by the host separately
   await B.evaluate(async (expr) => {
     const ctl = await eval(expr);

@@ -134,7 +134,10 @@ function str(o, k) { return o && typeof o === 'object' && typeof o[k] === 'strin
 
 const full = (m, s) => ({ machine: m.id, method: s.method, url: baseUrl(m) + s.path, headers: s.headers, body: s.body || null, expect: s.expect || [200], timeoutMs: s.timeoutMs || 15000 });
 
-export function pingPlan(m) { return full(m, DRIVERS[m.kind].ping(m)); }
+/** The shell (machines.rs) speaks plain http to a local machine only (a LAN machine's certificate is rarely one it could verify), so a
+ *  machine marked https is refused here, before a key could go out in the clear (0.11 EG.40). */
+const plainOnly = (m) => { if (m.tls) throw coded('tls', 'Studio reaches machines on your network over plain http only. Turn off https for this machine.'); };
+export function pingPlan(m) { plainOnly(m); return full(m, DRIVERS[m.kind].ping(m)); }
 export function parsePing(m, res) {
   if (!res || res.status < 200 || res.status >= 300) return { ok: false, version: '', status: res ? res.status : 0 };
   let b = null; try { b = JSON.parse(typeof res.body === 'string' ? res.body : new TextDecoder().decode(res.body)); } catch { b = null; }
@@ -145,6 +148,7 @@ export function parsePing(m, res) {
 export function plan(machineRaw, job) {
   const m = cleanMachine(machineRaw);
   if (!m) throw coded('machine', 'That is not a machine on the local network.');
+  plainOnly(m);
   const name = jobName(job && job.name);
   if (!name) throw coded('name', 'The file needs a G-code or NC name (' + EXTENSIONS.map((x) => '.' + x).join(', ') + ').');
   const bytes = job && job.bytes;
@@ -166,7 +170,9 @@ export async function send(machineRaw, job, transport) {
   const out = { ok: false, uploaded: false, started: false, status: 0, message: '', notes: p.notes, name: p.name };
   for (const step of p.steps) {
     let res;
-    try { res = await transport.request(step); } catch (e) { out.message = String((e && e.message) || e).slice(0, 200); out.code = 'network'; return out; }
+    // The shell says why in its error code ("not_allowed: …", "size: …", "network: …"; bridge.js puts it on e.code): keep the reasons the page
+    // words, everything else is the network.
+    try { res = await transport.request(step); } catch (e) { out.message = String((e && e.message) || e).slice(0, 200); out.code = ['not_allowed', 'size', 'key'].includes(e && e.code) ? e.code : 'network'; return out; }
     out.status = res.status;
     if (!step.expect.includes(res.status)) { out.message = 'The machine answered ' + res.status + '.'; out.code = res.status === 401 || res.status === 403 ? 'key' : 'refused'; return out; }
   }

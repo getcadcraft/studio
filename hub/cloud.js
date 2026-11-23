@@ -23,6 +23,24 @@
  *   q.summary() → {waiting, conflict, failed, paused}
  */
 
+/**
+ * 0.11 SCF.9: what the sign outside the page says (desktop-shell sync_badge.rs, `cadcraftDesktop.sync.state`), from the queue's
+ * summary, whether the person is signed in and whether the computer is online. Numbers and a state word only, never names.
+ *   syncSign({waiting, conflict, failed, paused}, {signedIn, online}) → {state: off|synced|saving|offline|signin|problem, waiting, problems}
+ */
+export function syncSign(sum, { signedIn = false, online = true } = {}) {
+  const s = sum || {};
+  const waiting = Math.max(0, Number(s.waiting) || 0);
+  const problems = Math.max(0, (Number(s.conflict) || 0) + (Number(s.failed) || 0));
+  let state;
+  if (problems) state = 'problem';
+  else if (s.paused || (!signedIn && waiting)) state = 'signin';
+  else if (!signedIn) state = 'off';
+  else if (waiting) state = online ? 'saving' : 'offline';
+  else state = 'synced';
+  return { state, waiting, problems };
+}
+
 export class CloudError extends Error {
   constructor(code, status = 0, extra = {}) { super(code); this.code = code; this.status = status; Object.assign(this, extra); }
 }

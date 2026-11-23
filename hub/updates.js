@@ -11,7 +11,9 @@
  * file: nothing can update it).
  *
  * `cc_updates_status` → {available, auto, autoAllowed, source (feed | notify | package), route (store | appinstaller |
- * sideloaded, packages only), edition, version, platform, busy, last {at, outcome, latest, notes, asked}}.
+ * sideloaded, packages only), edition, version, platform, busy, last {at, outcome, latest, notes, asked}, flatpak}.
+ * 0.11 FX.138: inside a Flatpak the shell has no updater (`flatpak` true, edition 'flatpak'): Flatpak updates the copy, and
+ * Settings says so instead of "this build has no updater".
  *
  *   updateOutcome(result, error) → { key, kind: 'info' | 'error' }
  *   updatesView(status)          → what Settings › Updates shows (keys + values; hub.js renders it)
@@ -22,6 +24,7 @@ const BAD = new Set(['no_build', 'network', 'feed', 'signature', 'install', 'not
 const EDITION = {
   installer: 'updates.edition.installer', portable: 'updates.edition.portable', 'msix-web': 'updates.edition.msix-web',
   'msix-store': 'updates.edition.msix-store', deb: 'updates.edition.deb', appimage: 'updates.edition.appimage', dmg: 'updates.edition.dmg',
+  flatpak: 'updates.edition.flatpak',
 };
 const PLATFORM = { windows: 'updates.platform.windows', linux: 'updates.platform.linux', macos: 'updates.platform.macos' };
 /** SU.1061: what this system needs, from `studio/tools/browser-floor.mjs` (the suite's syntax asks for Safari 16.4 = macOS 13.3 /
@@ -48,7 +51,8 @@ const LAST = { current: 'updates.last.current', available: 'updates.last.availab
 export const KEYS = ['updates.none', 'updates.done', 'updates.failed', ...Object.values(OK), ...[...BAD].map((c) => 'updates.err.' + c),
   ...Object.values(EDITION), ...Object.values(PLATFORM), ...Object.values(NEEDS), ...Object.values(FROM), ...Object.values(LAST),
   'updates.edition.unknown', 'updates.never', 'updates.latest.same', 'updates.latest.unknown', 'updates.install', 'updates.install.download',
-  'updates.install.store', 'updates.why.busy', 'updates.why.none', 'updates.auto.windows', 'updates.auto.daily'];
+  'updates.install.store', 'updates.why.busy', 'updates.why.none', 'updates.auto.windows', 'updates.auto.daily',
+  'updates.from.flatpak', 'updates.why.flatpak', 'updates.flatpak'];
 
 export function updateOutcome(result, error) {
   if (error) {
@@ -73,7 +77,7 @@ export function lastKey(outcome) {
  */
 export function updatesView(st) {
   if (!st) return null;
-  const from = st.source === 'package' ? FROM[st.route] || FROM.sideloaded : FROM[st.source] || null;
+  const from = st.flatpak ? 'updates.from.flatpak' : st.source === 'package' ? FROM[st.route] || FROM.sideloaded : FROM[st.source] || null;
   const last = st.last && st.last.at ? st.last : null;
   const v = String(st.version || '');
   let latest = null;
@@ -93,7 +97,7 @@ export function updatesView(st) {
     from,
     last: last ? { at: last.at, key: lastKey(last.outcome) } : null,
     latest,
-    check: { disabled: !st.available || !!st.busy, why: !st.available ? 'updates.why.none' : st.busy ? 'updates.why.busy' : null },
+    check: { disabled: !st.available || !!st.busy, why: !st.available ? (st.flatpak ? 'updates.why.flatpak' : 'updates.why.none') : st.busy ? 'updates.why.busy' : null },
     install: offer && st.available && !st.busy ? { key: installKey } : null,
     auto: { shown: !!st.autoAllowed, on: !!st.auto, hint: 'updates.auto.daily' },
     autoNote: st.available && !st.autoAllowed && st.source === 'package' && st.route === 'store' ? 'updates.auto.windows' : null,

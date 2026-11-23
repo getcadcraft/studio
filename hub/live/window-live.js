@@ -881,7 +881,9 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
   /** EG.41: the assistant's cursor goes where its step landed, with the tool it is running; 8 s after the last step it rests. */
   function workingAt(id, a, person, step, loc) {
     if (a.final) return;
-    const tool = (st.lastTool.get(id) || step.label || '');
+    // The call's own name arrives when the call ends (tagCall), so the tool remembered here is the PREVIOUS call's: show this
+    // step's label now, and tagCall puts the tool's name in as soon as it is known (0.11: it said "undo" while drawing a line).
+    const tool = step.label || '';
     a.setPresence(presenceFor({ loc, tool, name: (a.o && a.o.name) || '', scope: st.scopes.get(id) || null, keys: person.adapter && person.adapter.presenceKeys }));
     win.clearTimeout(st.idle.get(id));
     st.idle.set(id, win.setTimeout(() => { if (!a.final) a.setPresence({ assistant: { n: 1, working: false } }); }, 8000));
@@ -893,6 +895,8 @@ export async function startLive({ doc = document, win = window, desk = win.cadcr
     if (!e || !id || !c || c.final || !st.assistants.has(id)) return;
     const a = st.assistants.get(id);
     st.lastTool.set(id, e.tool);
+    const lp = a && !a.final ? a.lastPresence : null;
+    if (lp && lp.assistant && lp.assistant.working) a.setPresence({ ...lp, [(c.adapter && c.adapter.presenceKeys && c.adapter.presenceKeys.cmd) || 'cmd']: String(e.tool || '').slice(0, 60) });
     tagEntry(e, liveLogFields({ session: c.session || '', as: (a && a.o && a.o.name) || e.client || '', scope: st.scopes.get(id) || null, loc: null, role: a ? 'assistant' : 'via-person' }));
   }
   /** What the person is looking at in the app: the adapter's `here()`, else the sheet and box in its own presence. */
